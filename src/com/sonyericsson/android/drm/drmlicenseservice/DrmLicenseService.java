@@ -69,10 +69,12 @@ public class DrmLicenseService extends Service {
             if (jobDb == null) {
                 jobDb = DrmJobDatabase.getInstance(this);
             }
+
+            if (jobDb == null) {
+                stopSelf();
+            }
         }
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
-        // Log.d(Constants.LOGTAG, "Creating DrmLicenseService");
-
     }
 
     @Override
@@ -90,7 +92,6 @@ public class DrmLicenseService extends Service {
                     ServiceUtility.sendOnInfoResult(this,
                             DrmErrorEvent.TYPE_RIGHTS_NOT_INSTALLED, null);
                 } else {
-                    //Log.d(Constants.LOGTAG, "intentAction is " + intentAction);
                     if (intentAction.equals(Constants.INTENT_ACTION_DRM_SERVICE_RENEW)) {
                         renewRights(intent);
                     } else if (intentAction
@@ -164,8 +165,6 @@ public class DrmLicenseService extends Service {
                 }
             }.start();
         } else {
-            // Log.e(Constants.LOGTAG,
-            // "Empty URI (no file), can't renew rights");
             ServiceUtility.sendOnInfoResult(this, DrmErrorEvent.TYPE_RIGHTS_NOT_INSTALLED, null);
         }
     }
@@ -177,15 +176,16 @@ public class DrmLicenseService extends Service {
             @Override
             public void handleMessage(Message msg) {
                 if (Constants.DEBUG) {
-                    Log.d(Constants.LOGTAG,
-                            "JobManager is done! Result was: " + msg.obj.toString());
+                    if (msg != null && msg.obj != null) {
+                        Log.d(Constants.LOGTAG,
+                                "JobManager is done!  Result was: " + msg.obj.toString());
+                    } else {
+                        Log.d(Constants.LOGTAG, "JobManager is done!  Result was null");
+                    }
                 }
             }
         };
 
-        // Log.d(Constants.LOGTAG, "HandleWebInitiator: intent " + intent);
-        // Log.d(Constants.LOGTAG, "HandleWebInitiator: uri " + uri);
-        // Log.d(Constants.LOGTAG, "HandleWebInitiator: mime " + mime);
         if (mime != null && mime.equals("application/vnd.ms-playready.initiator+xml")) {
             if (uri != null && uri.getScheme() != null) {
                 final Context fContext = this;
@@ -202,15 +202,7 @@ public class DrmLicenseService extends Service {
                 // in Browser, or when a downloaded WI was tapped in notification bar.
                 int resId = R.string.status_start_download;
                 Toast.makeText(fContext, resId, Toast.LENGTH_SHORT).show();
-            } else {
-                // Log.d(Constants.LOGTAG,
-                // "Uri is null or incorrect. Should not happen. "
-                // + "Probably incorrectly used function. " + uri);
             }
-        } else {
-            // Log.d(Constants.LOGTAG,
-            // "Mime is null or incorrect. Should not happen. "
-            // + "Probably incorrectly used function.");
         }
     }
 
@@ -228,7 +220,7 @@ public class DrmLicenseService extends Service {
             }
             JobManager jm = new JobManager(
                     mContext, null, parameters, callbackHandler, 0, jobDb);
-            jm.pushJob(new DrmFeedbackJob(DrmFeedbackJob.TYPE_FINISHED_WEBINI));
+            jm.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_FINISHED_WEBINI));
             jm.pushJob(new WebInitiatorJob(uri));
             synchronized (mJobs) {
                 mJobs.put(Long.valueOf(jm.getSessionId()), jm);
@@ -276,6 +268,7 @@ public class DrmLicenseService extends Service {
                 final JobManager jm = new JobManager(mContext, null, parameters, callbackHandler, 0,
                         jobDb);
                 jm.mSessionId = sessionId;
+                jm.restoreState();
                 jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
                     @Override
                     void isDone(long sessionId) {

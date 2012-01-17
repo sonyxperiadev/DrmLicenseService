@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -86,7 +88,7 @@ public class WebInitiatorJob extends StackableJob {
                                         + " did not return any data.");
                             }
                             if (mJobManager != null) {
-                                mJobManager.addParameter("HTTP_ERROR", -5);
+                                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                             }
                         }
                     } else {
@@ -94,10 +96,12 @@ public class WebInitiatorJob extends StackableJob {
                             Log.d(Constants.LOGTAG, "Request to " + mUri.toString() + " failed.");
                         }
                         if (mJobManager != null && response != null) {
-                            mJobManager.addParameter("HTTP_ERROR", response.getStatus());
+                            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR,
+                                    response.getStatus());
                             int innerHttpError = response.getInnerStatus();
                             if (innerHttpError != 0) {
-                                mJobManager.addParameter("INNER_HTTP_ERROR", innerHttpError);
+                                mJobManager.addParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR,
+                                        innerHttpError);
                             }
                         }
                     }
@@ -166,12 +170,12 @@ public class WebInitiatorJob extends StackableJob {
                                         && kid.length() > 0) {
                                     if (content != null && content.length() > 0) {
                                         mJobManager.pushJob(new DrmFeedbackJob(
-                                                DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                                    Constants.PROGRESS_TYPE_FINISHED_JOB,
                                                 "AcquireLicense", Uri.parse(content)));
                                         mJobManager.pushJob(new DownloadContentJob(content));
                                     } else {
                                         mJobManager.pushJob(new DrmFeedbackJob(
-                                                DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                                    Constants.PROGRESS_TYPE_FINISHED_JOB,
                                                 "AcquireLicense"));
                                     }
                                     if (luiUrl != null) {
@@ -190,7 +194,7 @@ public class WebInitiatorJob extends StackableJob {
                                 }
                             } else if (type.equals("JoinDomain")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                        DrmFeedbackJob.TYPE_FINISHED_JOB, "JoinDomain"));
+                                            Constants.PROGRESS_TYPE_FINISHED_JOB, "JoinDomain"));
                                 mJobManager.pushJob(new JoinDomainJob(data
                                         .get("JoinDomain.DomainController"), data
                                         .get("JoinDomain.DS_ID"), data
@@ -201,7 +205,7 @@ public class WebInitiatorJob extends StackableJob {
                                 status = true;
                             } else if (type.equals("LeaveDomain")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                        DrmFeedbackJob.TYPE_FINISHED_JOB, "LeaveDomain"));
+                                            Constants.PROGRESS_TYPE_FINISHED_JOB, "LeaveDomain"));
                                 mJobManager.pushJob(new LeaveDomainJob(data
                                         .get("LeaveDomain.DomainController"), data
                                         .get("LeaveDomain.DS_ID"), data
@@ -211,7 +215,7 @@ public class WebInitiatorJob extends StackableJob {
                                 status = true;
                             } else if (type.equals("Metering")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                        DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                            Constants.PROGRESS_TYPE_FINISHED_JOB,
                                         "GetMeteringCertificate"));
                                 mJobManager.pushJob(new ProcessMeteringDataJob(data
                                         .get("Metering.CertificateServer"), data
@@ -230,54 +234,42 @@ public class WebInitiatorJob extends StackableJob {
                             mJobManager.createNewJobGroup();
                         }
                         mJobManager.pushJob(new DrmFeedbackJob(
-                                DrmFeedbackJob.TYPE_WEBINI_COUNT, mUri));
+                                    Constants.PROGRESS_TYPE_WEBINI_COUNT, mUri));
                         if (sendLicReqStartMsg == true && status == true) {
                             ServiceUtility.sendOnInfoResult(mJobManager.getContext(),
                                     DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, mUri.getEncodedPath());
                         }
                     } else {
                         if (mJobManager != null) {
-                            mJobManager.addParameter("HTTP_ERROR", -5);
+                                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                         }
-                        // Log.w(Constants.LOGTAG, "Parsed data is null");
                     }
                 }
             } catch (MalformedURLException e) {
-                // Log.w(Constants.LOGTAG, "Provided URL is malformed: " +
-                // e.getMessage());
                 if (mJobManager != null) {
-                    mJobManager.addParameter("HTTP_ERROR", -5);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
             } catch (ParserConfigurationException e) {
-                // Log.w(Constants.LOGTAG,
-                // "XML parser not configured correctly: " + e.getMessage());
                 if (mJobManager != null) {
-                    mJobManager.addParameter("HTTP_ERROR", -5);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
             } catch (SAXException e) {
-                // Log.w(Constants.LOGTAG, "Error occurred in XML parsing: " +
-                // e.getMessage());
                 if (mJobManager != null) {
-                    mJobManager.addParameter("HTTP_ERROR", -5);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
             } catch (IOException e) {
-                // Log.w(Constants.LOGTAG,
-                // "Error occurred while reading url data:"
-                // + e.getMessage());
                 if (mJobManager != null) {
-                    mJobManager.addParameter("HTTP_ERROR", -5);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
             }
         } else {
-            // Log.w(Constants.LOGTAG, "Provided uri is null");
             if (mJobManager != null) {
-                mJobManager.addParameter("HTTP_ERROR", -5);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
             }
         }
-        if (mJobManager != null && mJobManager.getParameters() != null
-                && mJobManager.getParameters().containsKey("HTTP_ERROR")) {
+        if (mJobManager != null && mJobManager.hasParameter(Constants.DRM_KEYPARAM_HTTP_ERROR)) {
             // Add job to notify that download/parsing of WebInitiator failed.
-            mJobManager.pushJob(new DrmFeedbackJob(DrmFeedbackJob.TYPE_WEBINI_COUNT, mUri));
+            mJobManager.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_WEBINI_COUNT, mUri));
         }
         if (status && uriToRemove != null) {
             new File(uriToRemove.getPath()).delete();
@@ -400,18 +392,19 @@ public class WebInitiatorJob extends StackableJob {
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE, DatabaseConstants.JOBTYPE_WEB_INITIATOR);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
+                DatabaseConstants.JOBTYPE_WEB_INITIATOR);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
         if (this.mUri != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mUri.toString());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mUri.toString());
         }
-        long result = msDb.insert(values);
+        long result = jobDb.insert(values);
         if (result != -1) {
             super.setDatabaseId(result);
         } else {
@@ -429,7 +422,7 @@ public class WebInitiatorJob extends StackableJob {
         } else {
             this.mUri = null;
         }
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
 
         return status;
     }

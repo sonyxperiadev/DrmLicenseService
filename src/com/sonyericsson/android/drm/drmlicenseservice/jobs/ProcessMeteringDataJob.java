@@ -16,7 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Ericsson Mobile Communications AB.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -95,7 +97,6 @@ public class ProcessMeteringDataJob extends StackableJob {
     @Override
     protected boolean handleResponse200(String data) {
         boolean isOk = false;
-        //Log.d(Constants.LOGTAG, "Metering report response received from server");
         // Send message to engine to process metering data response
         DrmInfo reply = sendInfoRequest(createRequestToProcessMeterDataResponse(
                 Constants.DRM_DLS_PIFF_MIME, data));
@@ -105,7 +106,6 @@ public class ProcessMeteringDataJob extends StackableJob {
         }
         if (reply != null) {
             String replyStatus = (String)reply.get(Constants.DRM_STATUS);
-            //Log.d(Constants.LOGTAG, "status is " + replyStatus);
             if (replyStatus != null && replyStatus.length() > 0 && replyStatus.equals("ok")) {
                 isOk = true;
 
@@ -113,10 +113,10 @@ public class ProcessMeteringDataJob extends StackableJob {
                     isOk = generateMeteringDataChallenge();
                 }
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
         } else {
-            mJobManager.addParameter("HTTP_ERROR", -6);
+            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
         }
         return isOk;
     }
@@ -141,23 +141,17 @@ public class ProcessMeteringDataJob extends StackableJob {
                 if (mMeteringStatus.equals("ReportGenerated")) {
                     if (data != null && data.length() > 0 && url != null && url.length() > 0) {
                         // Post license challenge to server
-                        //Log.d(Constants.LOGTAG, "Metering report sent to server");
-                        //Log.d(Constants.LOGTAG, "url = " + url);
-                        //Log.d(Constants.LOGTAG, "data length = " + data.length());
                         isOk = postMessage(url, data);
                         if (mAllowedRemainingPackets > 0) {
                             mAllowedRemainingPackets--;
                         }
                     } else {
-                        //Log.d(Constants.LOGTAG, "No relevant challenge or url");
                     }
                 } else if (mMeteringStatus.equals("NoMoreReports")) {
                     // No more to report
                     isOk = true;
                 } else if (mMeteringStatus.equals("NoCertStored")) {
-                    //Log.d(Constants.LOGTAG, "No Certificate stored");
                     if (mAllowedToFetchCert) {
-                        //Log.d(Constants.LOGTAG, "Fetch certificate");
                         mJobManager.pushJob(new ProcessMeteringDataJob(mCertificateServer,
                                 mMeteringId, mCustomData, mMaxPackets, false));
                         mJobManager.pushJob(new GetMeteringCertificateJob(mCertificateServer,
@@ -165,35 +159,34 @@ public class ProcessMeteringDataJob extends StackableJob {
                         isOk = true;
                     }
                 } else {
-                    mJobManager.addParameter("HTTP_ERROR", -6);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
                 }
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
         } else {
-            mJobManager.addParameter("HTTP_ERROR", -6);
-            //Log.d(Constants.LOGTAG, "reply is null");
+            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
         }
         return isOk;
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE,
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
                 DatabaseConstants.JOBTYPE_PROCESS_METERING_DATA);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mCertificateServer);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL2, this.mMeteringId);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL3, this.mCustomData);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL4, this.mMaxPackets);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL5,
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mCertificateServer);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL2, this.mMeteringId);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL3, this.mCustomData);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL4, this.mMaxPackets);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL5,
                 String.valueOf(this.mAllowedToFetchCert));
-        long result = msDb.insert(values);
+        long result = jobDb.insert(values);
         if (result  != -1) {
             super.setDatabaseId(result);
         } else {
@@ -217,7 +210,7 @@ public class ProcessMeteringDataJob extends StackableJob {
         this.mMeteringId = c.getString(DatabaseConstants.COLUMN_PROCESS_METERING_DATA_METERING_ID);
         this.mCustomData = c.getString(DatabaseConstants.COLUMN_PROCESS_METERING_DATA_CUSTOM_DATA);
         this.mMaxPackets = c.getString(DatabaseConstants.COLUMN_PROCESS_METERING_DATA_MAX_PACKETS);
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 }

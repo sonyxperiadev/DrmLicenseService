@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -78,7 +80,6 @@ public class RenewRightsJob extends StackableJob {
         if (mFileUri != null) {
             scheme = mFileUri.getScheme();
         }
-        // Log.d(Constants.LOGTAG, "Starting job: " + this);
 
         if (mFileUri != null && "http".equals(scheme)) {
             tempFile = getUniqueTempFileName(mJobManager.getContext(),
@@ -130,12 +131,14 @@ public class RenewRightsJob extends StackableJob {
                         mFileUri.toString(), mJobManager.getParameters(), callback);
 
                 if (response == null) {
-                    mJobManager.addParameter("HTTP_ERROR", -4);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -4);
                 } else if (response.getStatus() != 200) {
-                    mJobManager.addParameter("HTTP_ERROR", response.getStatus());
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR,
+                            response.getStatus());
                     int innerHttpError = response.getInnerStatus();
                     if (innerHttpError != 0) {
-                        mJobManager.addParameter("INNER_HTTP_ERROR", innerHttpError);
+                        mJobManager.addParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR,
+                                innerHttpError);
                     }
                 }
             }
@@ -162,24 +165,16 @@ public class RenewRightsJob extends StackableJob {
                     }
                 }
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -4);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -4);
             }
-        } else {
-            // Log.w(Constants.LOGTAG, "Uri is not valid " + mFileUri);
         }
 
         if (headerString.length() > 0) {
             String header = headerString.toString();
-
-            // Log.d(Constants.LOGTAG, "Got header" + header);
             parseUrls(header);
-            // Log.d(Constants.LOGTAG, "Got headers LA " + mLA_URL);
-            // Log.d(Constants.LOGTAG, "Got headers LUI " + mLUI_URL);
             if (mLA_URL != null && mLA_URL.length() > 0) {
-                // Log.d(Constants.LOGTAG,
-                // "Using LA_URL to start license acquistion");
-                mJobManager.pushJob(new DrmFeedbackJob(
-                        DrmFeedbackJob.TYPE_RENEW_RIGHTS, mFileUri));
+                mJobManager.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_RENEW_RIGHTS,
+                        mFileUri));
                 if (mLUI_URL != null && mLUI_URL.length() > 0) {
                     mJobManager.pushJob(new LaunchLuiUrlIfFailureJob(mLUI_URL));
                 }
@@ -194,10 +189,10 @@ public class RenewRightsJob extends StackableJob {
                     mJobManager.getContext().startActivity(i);
                     isOk = true;
                 } else {
-                    mJobManager.addParameter("REDIRECT_URL", mLUI_URL);
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_REDIRECT_URL, mLUI_URL);
                 }
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -5);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
             }
         }
         if (tempFile != null) {
@@ -206,7 +201,7 @@ public class RenewRightsJob extends StackableJob {
             }
         }
         if (!isOk) {
-            int type = DrmFeedbackJob.TYPE_RENEW_RIGHTS;
+            int type = Constants.PROGRESS_TYPE_RENEW_RIGHTS;
             mJobManager.pushJob(new DrmFeedbackJob(type, mFileUri));
         }
         return isOk;
@@ -225,7 +220,8 @@ public class RenewRightsJob extends StackableJob {
         if (directory != null) {
             if (!directory.exists()) {
                 if (!directory.mkdirs()) {
-                    // Should never fail, if it does, try to use it anyway as we need a private dir
+                    // Should never fail, if it does, try to use it anyway as we
+                    // need a private dir
                 }
             }
             if (!new File(directory, inputFilename).exists()) {
@@ -321,18 +317,19 @@ public class RenewRightsJob extends StackableJob {
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE, DatabaseConstants.JOBTYPE_RENEW_RIGHTS);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
+                DatabaseConstants.JOBTYPE_RENEW_RIGHTS);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
         if (mFileUri != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mFileUri.toString());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mFileUri.toString());
         }
-        long result = msDb.insert(values);
+        long result = jobDb.insert(values);
         if (result != -1) {
             super.setDatabaseId(result);
         } else {
@@ -347,7 +344,7 @@ public class RenewRightsJob extends StackableJob {
         if (uriRenewString != null) {
             this.mFileUri = Uri.parse(uriRenewString);
         }
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 }

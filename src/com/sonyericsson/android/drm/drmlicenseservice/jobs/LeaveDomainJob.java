@@ -16,7 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Ericsson Mobile Communications AB.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -79,11 +81,9 @@ public class LeaveDomainJob extends StackableJob {
     @Override
     public boolean executeNormal() {
         if (mController == null) {
-            //Log.w(Constants.LOGTAG, "Missing domain controller URL");
             return false;
         }
         if (mServiceId == Constants.ALL_ZEROS_DRM_ID && mAccountId == Constants.ALL_ZEROS_DRM_ID) {
-            //Log.w(Constants.LOGTAG, "Missing both service ID and account ID");
             return false;
         }
         try {
@@ -101,13 +101,12 @@ public class LeaveDomainJob extends StackableJob {
                 String data = (String)reply.get(Constants.DRM_DATA);
                 return postMessage(mController, data);
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
         } catch (NullPointerException e) {
             if (mJobManager != null) {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
-            //Log.w(Constants.LOGTAG, "Unexpected null pointer exception");
         }
         return false;
     }
@@ -128,29 +127,29 @@ public class LeaveDomainJob extends StackableJob {
             return replyStatus.equals("ok");
         } catch (NullPointerException e) {
             if (mJobManager != null) {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
-            //Log.w(Constants.LOGTAG, "Unexpected null pointer exception");
         }
         return false;
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE, DatabaseConstants.JOBTYPE_LEAVE_DOMAIN);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
+                DatabaseConstants.JOBTYPE_LEAVE_DOMAIN);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mController);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL2, this.mServiceId);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL3, this.mAccountId);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL4, this.mRevision);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL5, this.mCustomData);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
-        long result = msDb.insert(values);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mController);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL2, this.mServiceId);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL3, this.mAccountId);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL4, this.mRevision);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL5, this.mCustomData);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
+        long result = jobDb.insert(values);
         if (result  != -1) {
             super.setDatabaseId(result);
         } else {
@@ -166,7 +165,7 @@ public class LeaveDomainJob extends StackableJob {
         this.mAccountId = c.getString(DatabaseConstants.COLUMN_LEAVE_DOMAIN_ACCOUNT_ID);
         this.mRevision = c.getString(DatabaseConstants.COLUMN_LEAVE_DOMAIN_REVISION);
         this.mCustomData = c.getString(DatabaseConstants.COLUMN_LEAVE_DOMAIN_CUSTOM_DATA);
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 }

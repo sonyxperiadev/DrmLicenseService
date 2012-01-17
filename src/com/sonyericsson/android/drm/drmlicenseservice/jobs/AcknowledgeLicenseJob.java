@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -72,31 +74,30 @@ public class AcknowledgeLicenseJob extends StackableJob {
         }
         if (reply != null) {
             String replyStatus = (String)reply.get(Constants.DRM_STATUS);
-            // Log.d(Constants.LOGTAG, "status is " + replyStatus);
             if (replyStatus != null && replyStatus.length() > 0 && replyStatus.equals("ok")) {
                 isOk = true;
             } else {
-                mJobManager.addParameter("HTTP_ERROR", -6);
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
             }
         } else {
-            mJobManager.addParameter("HTTP_ERROR", -6);
+            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
         }
         return isOk;
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE,
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
                 DatabaseConstants.JOBTYPE_ACKNOWLEDGE_LICENSE);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mUrl);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL2, this.mChallenge);
-        long result = msDb.insert(values);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mUrl);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL2, this.mChallenge);
+        long result = jobDb.insert(values);
         if (result != -1) {
             super.setDatabaseId(result);
         } else {
@@ -109,7 +110,7 @@ public class AcknowledgeLicenseJob extends StackableJob {
     public boolean readFromDB(Cursor c) {
         this.mChallenge = c.getString(DatabaseConstants.COLUMN_ACK_CHALLENGE);
         this.mUrl = c.getString(DatabaseConstants.COLUMN_ACK_URL);
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 

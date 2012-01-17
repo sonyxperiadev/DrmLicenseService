@@ -29,6 +29,7 @@ package com.sonyericsson.android.drm.drmlicenseservice.jobs;
 import com.sonyericsson.android.drm.drmlicenseservice.DatabaseConstants;
 import com.sonyericsson.android.drm.drmlicenseservice.DrmJobDatabase;
 import com.sonyericsson.android.drm.drmlicenseservice.R;
+import com.sonyericsson.android.drm.drmlicenseservice.Constants;
 
 import android.app.DownloadManager;
 import android.app.Notification;
@@ -86,10 +87,13 @@ public class DownloadContentJob extends StackableJob {
                 mDwldManager = (DownloadManager)context.getSystemService(Context.DOWNLOAD_SERVICE);
                 DownloadManager.Request request = new DownloadManager.Request(uri);
                 String lastPart = uri.getLastPathSegment();
+                String filename = null;
+                String directory = Environment.DIRECTORY_DOWNLOADS;
                 if (lastPart != null && lastPart.length() > 0 && lastPart.contains(".")) {
-                    String directory = Environment.DIRECTORY_DOWNLOADS;
-                    String filename = getUniqueFileName(
+                    filename = getUniqueFileName(
                             Environment.getExternalStoragePublicDirectory(directory), lastPart);
+                }
+                if (null != filename) {
                     try {
                         request.setDestinationInExternalPublicDir(directory, filename);
                     } catch (IllegalStateException e) {
@@ -98,16 +102,14 @@ public class DownloadContentJob extends StackableJob {
                     request.setVisibleInDownloadsUi(true);
                     request.setShowRunningNotification(true);
 
-                    Bundle parameters = mJobManager.getParameters();
-                    if (parameters != null && parameters.containsKey("HTTP_HEADERS")) {
-                        Bundle headers = parameters.getBundle("HTTP_HEADERS");
-                        if (headers != null && headers.size() > 0) {
-                            for (String headerKey : headers.keySet()) {
-                                if (headerKey != null && headerKey.length() > 0) {
-                                    String headerValue = headers.getString(headerKey);
-                                    if (headerValue != null && headerValue.length() > 0) {
-                                        request.addRequestHeader(headerKey, headerValue);
-                                    }
+                    Bundle headers = mJobManager.getBundleParameter(
+                            Constants.DRM_KEYPARAM_HTTP_HEADERS);
+                    if (headers != null && headers.size() > 0) {
+                        for (String headerKey : headers.keySet()) {
+                            if (headerKey != null && headerKey.length() > 0) {
+                                String headerValue = headers.getString(headerKey);
+                                if (headerValue != null && headerValue.length() > 0) {
+                                    request.addRequestHeader(headerKey, headerValue);
                                 }
                             }
                         }
@@ -119,6 +121,9 @@ public class DownloadContentJob extends StackableJob {
                     mCursor = mDwldManager.query(query);
                     if (mCursor != null && mCursor.moveToFirst()) {
                         mCursor.registerContentObserver(mObserver);
+                        int localUriIndex = mCursor
+                                .getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                        mDownloadFilePath = mCursor.getString(localUriIndex);
                         Looper.loop();
                     }
                 }
@@ -129,22 +134,22 @@ public class DownloadContentJob extends StackableJob {
 
     private String getUniqueFileName(File directory, String inputFilename) {
         String filename = null;
+        boolean dirCreated = true;
         if (!directory.exists()) {
-            if (!directory.mkdirs()) {
-                // Log.w(Constants.LOGTAG,
-                // "Error: Could't create the private directory for download");
-            }
+            dirCreated = directory.mkdirs();
         }
-        if (!new File(directory, inputFilename).exists()) {
-            filename = inputFilename;
-        } else {
-            String name = inputFilename.replaceAll("\\.[^\\.]*", "");
-            String ext = inputFilename.replaceAll(".*\\.", ".");
-            long count = 0;
-            do {
-                count--;
-                filename = name + count + ext;
-            } while (new File(directory, filename).exists());
+        if (dirCreated) {
+            if (!new File(directory, inputFilename).exists()) {
+                filename = inputFilename;
+            } else {
+                String name = inputFilename.replaceAll("\\.[^\\.]*", "");
+                String ext = inputFilename.replaceAll(".*\\.", ".");
+                long count = 0;
+                do {
+                    count--;
+                    filename = name + count + ext;
+                } while (new File(directory, filename).exists());
+            }
         }
         return filename;
     }
@@ -272,7 +277,8 @@ public class DownloadContentJob extends StackableJob {
      */
     private void finishDownload(String filePath, String downloadStatus) {
         // TODO re-add download to notification bar!
-        mJobManager.pushJob(new DrmFeedbackJob(DrmFeedbackJob.TYPE_CONTENT_DOWNLOADED, filePath));
+        mJobManager.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_CONTENT_DOWNLOADED,
+                filePath));
 
         if (downloadStatus.equals("SUCCESS") && filePath != null) {
             Uri filePathUri = Uri.parse(filePath);
@@ -291,16 +297,17 @@ public class DownloadContentJob extends StackableJob {
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE, DatabaseConstants.JOBTYPE_DOWNLOAD_CONTENT);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
+                DatabaseConstants.JOBTYPE_DOWNLOAD_CONTENT);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mContentUrl);
-        long result = msDb.insert(values);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mContentUrl);
+        long result = jobDb.insert(values);
         if (result != -1) {
             super.setDatabaseId(result);
         } else {
@@ -312,7 +319,7 @@ public class DownloadContentJob extends StackableJob {
     @Override
     public boolean readFromDB(Cursor c) {
         this.mContentUrl = c.getString(DatabaseConstants.COLUMN_DWLD_URL);
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 }

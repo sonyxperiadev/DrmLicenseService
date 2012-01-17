@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -67,17 +69,9 @@ public class ErrorMessageParser {
 
                 return data;
             } catch (ParserConfigurationException e) {
-                // Log.w(Constants.LOGTAG,
-                // "XML parser not configured correctly: " + e.getMessage());
             } catch (SAXException e) {
-                // Log.w(Constants.LOGTAG, "Error occurred in XML parsing: " +
-                // e.getMessage());
             } catch (IOException e) {
-                // Log.w(Constants.LOGTAG,
-                // "Error occurred while reading url data: " + e.getMessage());
             }
-        } else {
-            // Log.w(Constants.LOGTAG, "The supplied xml data is null");
         }
         return null;
     }

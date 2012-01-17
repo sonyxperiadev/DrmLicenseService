@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -28,6 +30,7 @@ import com.sonyericsson.android.drm.drmlicenseservice.DatabaseConstants;
 import com.sonyericsson.android.drm.drmlicenseservice.DrmJobDatabase;
 import com.sonyericsson.android.drm.drmlicenseservice.ServiceUtility;
 import com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseServiceCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.Constants;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -39,17 +42,6 @@ import android.os.Bundle;
 import android.os.RemoteException;
 
 public class DrmFeedbackJob extends StackableJob {
-    public static final int TYPE_WEBINI_COUNT = 1;
-
-    public static final int TYPE_FINISHED_JOB = 2;
-
-    public static final int TYPE_FINISHED_WEBINI = 3;
-
-    public static final int TYPE_CANCELLED = 4;
-
-    public static final int TYPE_RENEW_RIGHTS = 5;
-
-    public static final int TYPE_CONTENT_DOWNLOADED = 6;
 
     private int mType = 0;
 
@@ -91,43 +83,43 @@ public class DrmFeedbackJob extends StackableJob {
 
     @Override
     public boolean executeNormal() {
-        // Log.d(Constants.LOGTAG, "Will send DrmFeedback type exec:" + mType);
         Bundle parameters = new Bundle();
+        boolean isOk = false;
         try {
             switch (mType) {
-                case TYPE_WEBINI_COUNT: {
+                case Constants.PROGRESS_TYPE_WEBINI_COUNT: {
                     int groups = mJobManager.getNumberOfGroups();
-                    parameters.putInt("GROUP_COUNT", groups);
+                    parameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, groups);
                     if (mFilePath != null) {
-                        parameters.putString("WEB_INITIATOR", mFilePath);
+                        parameters.putString(Constants.DRM_KEYPARAM_WEB_INITIATOR, mFilePath);
                     }
                     sendToCallbacks(mType, true, parameters);
                     break;
                 }
-                case TYPE_FINISHED_JOB: {
+                case Constants.PROGRESS_TYPE_FINISHED_JOB: {
                     // This job group has succeeded.
                     copyGenericParameters(parameters);
                     int groups = mJobManager.getNumberOfGroups();
-                    parameters.putInt("GROUP_COUNT", groups);
-                    parameters.putInt("GROUP_NUMBER", getGroupId());
+                    parameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, groups);
+                    parameters.putInt(Constants.DRM_KEYPARAM_GROUP_NUMBER, getGroupId());
                     if (mGroupType != null && mGroupType.length() > 0) {
-                        parameters.putString("TYPE", mGroupType);
+                        parameters.putString(Constants.DRM_KEYPARAM_TYPE, mGroupType);
                     }
                     if (mFilePath != null) {
-                        parameters.putString("CONTENT_URL", mFilePath);
+                        parameters.putString(Constants.DRM_KEYPARAM_CONTENT_URL, mFilePath);
                     }
                     sendToCallbacks(mType, true, parameters);
                     break;
                 }
-                case TYPE_FINISHED_WEBINI:
+                case Constants.PROGRESS_TYPE_FINISHED_WEBINI:
                     sendToCallbacks(mType, mJobManager.isAllJobsOk(), parameters);
                     break;
-                case TYPE_RENEW_RIGHTS:
+                case Constants.PROGRESS_TYPE_RENEW_RIGHTS:
                     // Send message that rights has been received
                     copyGenericParameters(parameters);
                     if (mJobManager.getCallbackHandler() != null) {
                         if (mFilePath != null) {
-                            parameters.putString("FILEPATH", mFilePath);
+                            parameters.putString(Constants.DRM_KEYPARAM_FILEPATH, mFilePath);
                         }
                         sendToCallbacks(mType, true, parameters);
                     } else {
@@ -135,55 +127,52 @@ public class DrmFeedbackJob extends StackableJob {
                     }
                     break;
             }
-            return true;
+            isOk = true;
         } catch (RemoteException e) {
-            // Log.w(Constants.LOGTAG, "Got exception when sending callback.");
-            e.printStackTrace();
-            return false;
         }
+        cleanupParameters();
+        return isOk;
     }
 
     @Override
     public void executeAfterEarlierFailure() {
-        // Log.d(Constants.LOGTAG, "Will send DrmFeedback type cancel:" +
-        // mType);
         Bundle parameters = new Bundle();
         try {
             switch (mType) {
-                case TYPE_WEBINI_COUNT: {
+                case Constants.PROGRESS_TYPE_WEBINI_COUNT: {
                     copyGenericParameters(parameters);
                     if (mFilePath != null) {
-                        parameters.putString("WEB_INITIATOR", mFilePath);
+                        parameters.putString(Constants.DRM_KEYPARAM_WEB_INITIATOR, mFilePath);
                     }
                     sendToCallbacks(mType, false, parameters);
                     break;
                 }
-                case TYPE_FINISHED_JOB: {
+                case Constants.PROGRESS_TYPE_FINISHED_JOB: {
                     // This job group has failed.
                     copyGenericParameters(parameters);
                     int groups = mJobManager.getNumberOfGroups();
-                    parameters.putInt("GROUP_COUNT", groups);
-                    parameters.putInt("GROUP_NUMBER", getGroupId());
+                    parameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, groups);
+                    parameters.putInt(Constants.DRM_KEYPARAM_GROUP_NUMBER, getGroupId());
                     if (mGroupType != null && mGroupType.length() > 0) {
-                        parameters.putString("TYPE", mGroupType);
+                        parameters.putString(Constants.DRM_KEYPARAM_TYPE, mGroupType);
                     }
                     sendToCallbacks(mType, false, parameters);
                     break;
                 }
-                case TYPE_FINISHED_WEBINI:
+                case Constants.PROGRESS_TYPE_FINISHED_WEBINI:
                     // Maybe this can be used to send info that jobmanager has
                     // been canceled by app...
                     sendToCallbacks(mType, false, parameters);
                     break;
-                case TYPE_CANCELLED:
+                case Constants.PROGRESS_TYPE_CANCELLED:
                     sendToCallbacks(mType, true, parameters);
                     break;
-                case TYPE_RENEW_RIGHTS:
+                case Constants.PROGRESS_TYPE_RENEW_RIGHTS:
                     // Send message that rights renewal was unsuccessful
                     copyGenericParameters(parameters);
                     if (mJobManager.getCallbackHandler() != null) {
                         if (mFilePath != null) {
-                            parameters.putString("FILEPATH", mFilePath);
+                            parameters.putString(Constants.DRM_KEYPARAM_FILEPATH, mFilePath);
                         }
                         sendToCallbacks(mType, false, parameters);
                     } else {
@@ -191,37 +180,35 @@ public class DrmFeedbackJob extends StackableJob {
                     }
                     break;
             }
+            cleanupParameters();
         } catch (RemoteException e) {
-            // Log.w(Constants.LOGTAG,
-            // "Got excepection while sending cancel callback.");
-            e.printStackTrace();
         }
     }
 
     private void copyGenericParameters(Bundle parameters) {
-        Bundle inParams = mJobManager.getParameters();
-        if (inParams != null) {
-            String customData = inParams.getString("CUSTOM_DATA_USED");
-            if (customData != null) {
-                parameters.putString("CUSTOM_DATA", customData);
-                inParams.remove("CUSTOM_DATA_USED");
-            }
-            String redirectUrl = inParams.getString("REDIRECT_URL");
-            if (redirectUrl != null && redirectUrl.length() > 0) {
-                parameters.putString("REDIRECT_URL", redirectUrl);
-                inParams.remove("REDIRECT_URL");
-            }
-            int httpError = inParams.getInt("HTTP_ERROR");
-            if (httpError != 0) {
-                parameters.putInt("HTTP_ERROR", httpError);
-                inParams.remove("HTTP_ERROR");
-            }
-            int innerHttpError = inParams.getInt("INNER_HTTP_ERROR");
-            if (innerHttpError != 0) {
-                parameters.putInt("INNER_HTTP_ERROR", innerHttpError);
-                inParams.remove("INNER_HTTP_ERROR");
-            }
+        String customData = mJobManager.getStringParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_USED);
+        if (customData != null) {
+            parameters.putString(Constants.DRM_KEYPARAM_CUSTOM_DATA, customData);
         }
+        String redirectUrl = mJobManager.getStringParameter(Constants.DRM_KEYPARAM_REDIRECT_URL);
+        if (redirectUrl != null && redirectUrl.length() > 0) {
+            parameters.putString(Constants.DRM_KEYPARAM_REDIRECT_URL, redirectUrl);
+        }
+        int httpError = mJobManager.getIntParameter(Constants.DRM_KEYPARAM_HTTP_ERROR);
+        if (httpError != 0) {
+            parameters.putInt(Constants.DRM_KEYPARAM_HTTP_ERROR, httpError);
+        }
+        int innerHttpError = mJobManager.getIntParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR);
+        if (innerHttpError != 0) {
+            parameters.putInt(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR, innerHttpError);
+        }
+    }
+
+    private void cleanupParameters() {
+        mJobManager.removeParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_USED);
+        mJobManager.removeParameter(Constants.DRM_KEYPARAM_REDIRECT_URL);
+        mJobManager.removeParameter(Constants.DRM_KEYPARAM_HTTP_ERROR);
+        mJobManager.removeParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR);
     }
 
     private void sendOnInfoResult(int resultCode) {
@@ -240,18 +227,19 @@ public class DrmFeedbackJob extends StackableJob {
     }
 
     @Override
-    public boolean writeToDB(DrmJobDatabase msDb) {
+    public boolean writeToDB(DrmJobDatabase jobDb) {
         boolean status = true;
         ContentValues values = new ContentValues();
-        values.put(DatabaseConstants.COLUMN_NAME_TYPE, DatabaseConstants.JOBTYPE_DRM_FEEDBACK);
-        values.put(DatabaseConstants.COLUMN_NAME_GRP_ID, this.getGroupId());
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_TYPE,
+                DatabaseConstants.JOBTYPE_DRM_FEEDBACK);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GRP_ID, this.getGroupId());
         if (mJobManager != null) {
-            values.put(DatabaseConstants.COLUMN_NAME_SESSION_ID, mJobManager.getSessionId());
+            values.put(DatabaseConstants.COLUMN_TASKS_NAME_SESSION_ID, mJobManager.getSessionId());
         }
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL1, this.mFilePath);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL2, this.mType);
-        values.put(DatabaseConstants.COLUMN_NAME_GENERAL3, this.mGroupType);
-        long result = msDb.insert(values);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL1, this.mFilePath);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL2, this.mType);
+        values.put(DatabaseConstants.COLUMN_TASKS_NAME_GENERAL3, this.mGroupType);
+        long result = jobDb.insert(values);
         if (result != -1) {
             super.setDatabaseId(result);
         } else {
@@ -265,7 +253,7 @@ public class DrmFeedbackJob extends StackableJob {
         this.mFilePath = c.getString(DatabaseConstants.COLUMN_DRMFEEDBACK_URI);
         this.mType = c.getInt(DatabaseConstants.COLUMN_DRMFEEDBACK_TYPE);
         this.mGroupType = c.getString(DatabaseConstants.COLUMN_DRMFEEDBACK_GROUP_TYPE);
-        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_POS_GRP_ID));
+        this.setGroupId(c.getInt(DatabaseConstants.COLUMN_TASKS_POS_GRP_ID));
         return true;
     }
 }

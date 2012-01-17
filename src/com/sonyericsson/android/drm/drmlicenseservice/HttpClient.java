@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -157,20 +159,20 @@ public class HttpClient {
             this.mParameters = parameters;
             this.mAction = action;
             if (parameters != null) {
-                if (parameters.containsKey("RETRY_COUNT")) {
-                    int value = parameters.getInt("RETRY_COUNT");
+                if (parameters.containsKey(Constants.DRM_KEYPARAM_RETRY_COUNT)) {
+                    int value = parameters.getInt(Constants.DRM_KEYPARAM_RETRY_COUNT);
                     if (value >= 0) {
                         retry_count = value;
                     }
                 }
-                if (parameters.containsKey("TIME_OUT")) {
-                    int value = parameters.getInt("TIME_OUT");
+                if (parameters.containsKey(Constants.DRM_KEYPARAM_TIME_OUT)) {
+                    int value = parameters.getInt(Constants.DRM_KEYPARAM_TIME_OUT);
                     if (value > 0) {
                         timeout = value;
                     }
                 }
-                if (parameters.containsKey("REDIRECT_LIMIT")) {
-                    int value = parameters.getInt("REDIRECT_LIMIT");
+                if (parameters.containsKey(Constants.DRM_KEYPARAM_REDIRECT_LIMIT)) {
+                    int value = parameters.getInt(Constants.DRM_KEYPARAM_REDIRECT_LIMIT);
                     if (value >= 0) {
                         redirect_limit = value;
                     }
@@ -238,15 +240,10 @@ public class HttpClient {
                         }
                     } catch (IllegalStateException e) {
                         request.abort();
-                        // Log.d(Constants.LOGTAG,
-                        // "Http client IllegalStateException: " +
-                        // e.getMessage());
                         statusCode = -4;
                         break;
                     } catch (IOException e) {
                         request.abort();
-                        // Log.d(Constants.LOGTAG, "Http client IOException: " +
-                        // e.getMessage());
                         requestException = e;
                     }
                 }
@@ -386,14 +383,14 @@ public class HttpClient {
         int retryCount = 5;
         int timeOut = 60;
         if (parameters != null) {
-            if (parameters.containsKey("RETRY_COUNT")) {
-                int value = parameters.getInt("RETRY_COUNT");
+            if (parameters.containsKey(Constants.DRM_KEYPARAM_RETRY_COUNT)) {
+                int value = parameters.getInt(Constants.DRM_KEYPARAM_RETRY_COUNT);
                 if (value >= 0) {
                     retryCount = value;
                 }
             }
-            if (parameters.containsKey("TIME_OUT")) {
-                int value = parameters.getInt("TIME_OUT");
+            if (parameters.containsKey(Constants.DRM_KEYPARAM_TIME_OUT)) {
+                int value = parameters.getInt(Constants.DRM_KEYPARAM_TIME_OUT);
                 if (value > 0) {
                     timeOut = value;
                 }
@@ -409,16 +406,11 @@ public class HttpClient {
         try {
             t.latch.await((retryCount + 1) * (timeOut + 1), TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            // Log.d(Constants.LOGTAG, "Latch interrupted");
             e.printStackTrace();
         }
         if (t.response != null) {
-            // Log.d(Constants.LOGTAG, "Has response");
         } else if (t.getKeepRunning() == false) {
-            // Log.d(Constants.LOGTAG, "Canceling session");
         } else {
-            // Log.d(Constants.LOGTAG,
-            // "Has NO response, setting -2 since timeout happened.");
             t.response = new Response(-2, t.getLastStatusCode(), null, null);
         }
         synchronized (mIdMap) {
@@ -453,9 +445,6 @@ public class HttpClient {
                     try {
                         request = new HttpPost(fUrl);
                     } catch (IllegalArgumentException e) {
-                        // Log.d(Constants.LOGTAG, "The url: \"" + fUrl
-                        // + "\" was not accepted by the http client: " +
-                        // e.getMessage());
                         return null;
                     }
                     request.setHeader("Content-Type", "text/xml; charset=utf-8");
@@ -464,10 +453,6 @@ public class HttpClient {
                         request.setHeader("SOAPAction",
                                 "\"http://schemas.microsoft.com/DRM/2007/03/protocols/"
                                         + fMessageType + "\"");
-                        // Log.d(Constants.LOGTAG, "Setting SOAPAction to: "
-                        // +
-                        // "\"http://schemas.microsoft.com/DRM/2007/03/protocols/"
-                        // + fMessageType + "\"");
                     }
                     if (fData != null && fData.length() > 0) {
                         ByteArrayBuffer bab = new ByteArrayBuffer(fData.length());
@@ -476,9 +461,6 @@ public class HttpClient {
                         try {
                             request.setEntity(new StringEntity(fData));
                         } catch (UnsupportedEncodingException e) {
-                            // Log.d(Constants.LOGTAG,
-                            // "Problem setting data on post req: " +
-                            // e.getMessage());
                         }
                     }
                 }
@@ -508,9 +490,6 @@ public class HttpClient {
                     try {
                         request = new HttpGet(fUrl);
                     } catch (IllegalArgumentException e) {
-                        // Log.d(Constants.LOGTAG, "The url: \"" + fUrl
-                        // + "\" was not accepted by the http client: " +
-                        // e.getMessage());
                         return null;
                     }
 
@@ -524,8 +503,8 @@ public class HttpClient {
 
     private static void addParameters(Bundle parameters, HttpRequestBase request) {
         if (parameters != null) {
-            if (parameters.containsKey("HTTP_HEADERS")) {
-                Bundle headers = parameters.getBundle("HTTP_HEADERS");
+            if (parameters.containsKey(Constants.DRM_KEYPARAM_HTTP_HEADERS)) {
+                Bundle headers = parameters.getBundle(Constants.DRM_KEYPARAM_HTTP_HEADERS);
                 if (headers != null && headers.size() > 0) {
                     for (String headerKey : headers.keySet()) {
                         if (headerKey != null && headerKey.length() > 0) {
@@ -542,8 +521,8 @@ public class HttpClient {
 
     private static String getUserAgent(Bundle parameters) {
         String userAgent = "PlayReadyApp";
-        if (parameters != null && parameters.containsKey("USER_AGENT")) {
-            String tempUA = parameters.getString("USER_AGENT");
+        if (parameters != null && parameters.containsKey(Constants.DRM_KEYPARAM_USER_AGENT)) {
+            String tempUA = parameters.getString(Constants.DRM_KEYPARAM_USER_AGENT);
             if (tempUA != null && tempUA.length() > 0) {
                 userAgent = tempUA;
             }

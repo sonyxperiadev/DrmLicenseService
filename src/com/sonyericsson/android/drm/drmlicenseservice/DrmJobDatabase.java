@@ -49,19 +49,29 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DrmJobDatabase extends SQLiteOpenHelper {
     private static final String TAG = DrmJobDatabase.class.getSimpleName();
+
     private static DrmJobDatabase sInstance = null;
+
     private static final ReentrantLock lock = new ReentrantLock();
+
     private static SQLiteDatabase sqlDb = null;
+
+    private static final int DB_TRYCOUNT = 10;
+
+    private static final int DB_TRYWAITTIME = 100;
+
     /**
      * The database that is used to save jobs
      */
 
     public static synchronized DrmJobDatabase getInstance(Context context) {
         boolean gotResult = false;
+        int retryCount = 0;
         do {
             try {
                 lock.lock();
@@ -73,18 +83,21 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
                 }
                 gotResult = true;
             } catch (SQLiteException e) {
-                Log.e(TAG, "Could not create database: " + e.getMessage()
-                        + " will try again");
+                Log.e(TAG, "Could not create database: " + e.getMessage() + " will try again");
             } finally {
                 lock.unlock();
             }
             if (!gotResult) {
                 try {
-                    Thread.yield();
-                } finally {
+                    Thread.sleep(DB_TRYWAITTIME);
+                } catch(InterruptedException e) {
                 }
             }
-        } while (!gotResult);
+        } while ((!gotResult) && DB_TRYCOUNT > (++retryCount));
+
+        if (!gotResult) {
+            return null;
+        }
 
         return sInstance;
     }
@@ -97,25 +110,50 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
     }
 
     /*
-     * Currently implemented to take away the EXACT record (by id)
-     * but could be implemented to delete all records containing
-     * the same content as the record thus removing duplicates
+     * Currently implemented to take away the EXACT record (by id) but could be
+     * implemented to delete all records containing the same content as the
+     * record thus removing duplicates
      */
-    public boolean remove(long id) {
+    public boolean removeTask(long id) {
         boolean result = false;
         try {
             lock.lock();
             String where = "id = ?";
-            String args[] = {String.valueOf(id)};
-            int rows = sqlDb.delete(DatabaseConstants.DATABASE_TABLE_NAME, where, args);
+            String args[] = {
+                String.valueOf(id)
+            };
+            int rows = sqlDb.delete(DatabaseConstants.DATABASE_TASKS_TABLE_NAME, where, args);
             SQLiteDatabase.releaseMemory();
             if (Constants.DEBUG) {
                 Log.d(TAG, "Remove: Number of rows affected in database when removing id["
-                        + id + "]: " + rows);
+                        + args[0] + "]: " + rows);
             }
             result = rows >= 1;
         } catch (SQLiteException e) {
             Log.e(TAG, "Sqlite exception while trying to remove job: " + e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+        return result;
+    }
+
+    public boolean removeParameter(long sessionid, String key) {
+        boolean result = false;
+        try {
+            lock.lock();
+            String where = "sessionid = ? AND key = ?";
+            String args[] = {
+                    String.valueOf(sessionid), String.valueOf(key)
+            };
+            int rows = sqlDb.delete(DatabaseConstants.DATABASE_PARAMETERS_TABLE_NAME, where, args);
+            SQLiteDatabase.releaseMemory();
+            if (Constants.DEBUG) {
+                Log.d(TAG, "Remove: Number of rows affected in database when removing parameter["
+                        + sessionid + "-" + key + "]: " + rows);
+            }
+            result = rows >= 1;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Sqlite exception while trying to remove parameter: " + e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -127,22 +165,22 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         Cursor c = null;
         try {
             lock.lock();
-            c = sqlDb.query(DatabaseConstants.DATABASE_TABLE_NAME,
-                    null, null, null, null,null, null);
+            c = sqlDb.query(DatabaseConstants.DATABASE_TASKS_TABLE_NAME, null, null, null, null,
+                    null, null);
 
             if (c != null) {
                 /* convert the first one and return that datatype */
-                if (c.moveToFirst() &&  !c.isAfterLast()) {
+                if (c.moveToFirst() && !c.isAfterLast()) {
                     result = converttoStackableJob(c);
                 }
             }
         } catch (SQLiteException e) {
             Log.e(TAG, "getNext: We have a exception - will return null " + e.getMessage());
         } finally {
-            lock.unlock();
             if (c != null) {
                 c.close();
             }
+            lock.unlock();
         }
         return result;
 
@@ -154,12 +192,12 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         boolean statusSent = false;
         try {
             lock.lock();
-            c = getDatabaseContents();
+            c = getDatabaseTaskContents();
 
             if (c != null) {
                 c.moveToFirst();
                 while (!c.isAfterLast()) {
-                    long jobSessionId = c.getLong(DatabaseConstants.COLUMN_POS_SESSION_ID);
+                    long jobSessionId = c.getLong(DatabaseConstants.COLUMN_TASKS_POS_SESSION_ID);
                     if (jobSessionId == sessionId) {
                         if (!statusSent && statusHandler != null) {
                             Message msg = new Message();
@@ -170,7 +208,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
 
                         StackableJob job = converttoStackableJob(c);
                         if (job != null) {
-                            job.setDatabaseId(c.getLong(DatabaseConstants.COLUMN_POS_ID));
+                            job.setDatabaseId(c.getLong(DatabaseConstants.COLUMN_TASKS_POS_ID));
                             jm.pushJobNoDatabase(job);
                             addedJobs++;
                         }
@@ -183,13 +221,12 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
                 }
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Got error when trying to read in jobs from DB. Error: "
-                    + e.getMessage());
+            Log.e(TAG, "Got error when trying to read in jobs from DB. Error: " + e.getMessage());
         } finally {
-            lock.unlock();
             if (c != null) {
                 c.close();
             }
+            lock.unlock();
         }
         if (!statusSent && statusHandler != null) {
             Message msg = new Message();
@@ -201,7 +238,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
 
     private StackableJob converttoStackableJob(Cursor cursor) {
         StackableJob result = null;
-        int colType = cursor.getInt(DatabaseConstants.COLUMN_POS_TYPE);
+        int colType = cursor.getInt(DatabaseConstants.COLUMN_TASKS_POS_TYPE);
         switch (colType) {
             case DatabaseConstants.JOBTYPE_ACKNOWLEDGE_LICENSE:
                 AcknowledgeLicenseJob ackResult = new AcknowledgeLicenseJob(null, null);
@@ -228,15 +265,14 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
                 break;
 
             case DatabaseConstants.JOBTYPE_GET_METERING_CERTIFICATE:
-                GetMeteringCertificateJob meteringResult =
-                    new GetMeteringCertificateJob(null, null, null);
+                GetMeteringCertificateJob meteringResult = new GetMeteringCertificateJob(null,
+                        null, null);
                 meteringResult.readFromDB(cursor);
                 result = meteringResult;
                 break;
 
             case DatabaseConstants.JOBTYPE_JOIN_DOMAIN:
-                JoinDomainJob joinDomainResult =
-                    new JoinDomainJob(null, null, null, null, null);
+                JoinDomainJob joinDomainResult = new JoinDomainJob(null, null, null, null, null);
                 joinDomainResult.readFromDB(cursor);
                 result = joinDomainResult;
                 break;
@@ -248,15 +284,14 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
                 break;
 
             case DatabaseConstants.JOBTYPE_LEAVE_DOMAIN:
-                LeaveDomainJob leaveResult =
-                    new LeaveDomainJob(null, null, null, null, null);
+                LeaveDomainJob leaveResult = new LeaveDomainJob(null, null, null, null, null);
                 leaveResult.readFromDB(cursor);
                 result = leaveResult;
                 break;
 
             case DatabaseConstants.JOBTYPE_PROCESS_METERING_DATA:
-                ProcessMeteringDataJob processMeteringResult =
-                    new ProcessMeteringDataJob(null, null, null, null, false);
+                ProcessMeteringDataJob processMeteringResult = new ProcessMeteringDataJob(null,
+                        null, null, null, false);
                 processMeteringResult.readFromDB(cursor);
                 result = processMeteringResult;
                 break;
@@ -276,7 +311,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
             default:
                 // error record, return null, should be removed by the caller
                 Log.e(TAG, "Error, garbage in the job database");
-                //remove(cursor.getInt(DatabaseConstants.COLUMN_POS_ID));
+                // remove(cursor.getInt(DatabaseConstants.COLUMN_POS_ID));
                 break;
         }
         return result;
@@ -286,7 +321,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         long result = -1;
         try {
             lock.lock();
-            result = sqlDb.insert(DatabaseConstants.DATABASE_TABLE_NAME, null, values);
+            result = sqlDb.insert(DatabaseConstants.DATABASE_TASKS_TABLE_NAME, null, values);
         } catch (SQLiteException e) {
             Log.e(TAG, "Insert: We have a exception -job will not get stored: " + e.getMessage());
         } finally {
@@ -298,35 +333,123 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         return result;
     }
 
-    /* Function to get the database content
-     * will return a Cursor and it's upp to caller to keep track and close cursor.
-     * All jobs are
+    public long insertParameter(ContentValues values) {
+        long result = -1;
+        try {
+            lock.lock();
+            result = sqlDb.insert(DatabaseConstants.DATABASE_PARAMETERS_TABLE_NAME, null, values);
+        } catch (SQLiteException e) {
+            Log.e(TAG,
+                    "Insert: We have a exception " + "-parameter will not get stored: "
+                            + e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+        if (Constants.DEBUG) {
+            Log.e(TAG, "insert: returning " + result);
+        }
+        return result;
+    }
+
+    /*
+     * Function to get the database content will return a Cursor and it's upp to
+     * caller to keep track and close cursor. All jobs are
      */
 
-    public Cursor getDatabaseContents() {
+    public Cursor getDatabaseTaskContents() {
         Cursor cursor = null;
 
         try {
             lock.lock();
-            cursor = sqlDb.query(
-                    DatabaseConstants.DATABASE_TABLE_NAME, null, null, null, null,null, null);
+            cursor = sqlDb.query(DatabaseConstants.DATABASE_TASKS_TABLE_NAME, null, null, null,
+                    null, null, null);
         } catch (SQLiteException e) {
-            Log.e(TAG, "getDatabaseContent: We have a exception, will not return any content:"
-                    + e.getMessage());
+            Log.e(TAG,
+                    "getDatabaseContent: We have a exception, will not return any content:"
+                            + e.getMessage());
         } finally {
             lock.unlock();
         }
         return cursor;
     }
 
+    public Cursor getDatabaseParameterContents(long sessionId) {
+        Cursor cursor = null;
+        String args[] = {
+            String.valueOf(sessionId)
+        };
+        try {
+            lock.lock();
+            cursor = sqlDb.query(DatabaseConstants.DATABASE_PARAMETERS_TABLE_NAME, null,
+                    DatabaseConstants.COLUMN_PARAMETERS_NAME_SESSION_ID + " = ?", args, null, null,
+                    null);
+        } catch (SQLiteException e) {
+            Log.e(TAG,
+                    "getDatabaseContent: We have a exception, will not return any content:"
+                            + e.getMessage());
+        } finally {
+            lock.unlock();
+        }
+        return cursor;
+    }
+
+    public HashMap<String, Object> getJobParameters(long sessionId) {
+        HashMap<String, Object> items = new HashMap<String, Object>();
+
+        Cursor c = null;
+        try {
+            lock.lock();
+            c = getDatabaseParameterContents(sessionId);
+            if (c != null) {
+                c.moveToFirst();
+                while (!c.isAfterLast()) {
+                    long jobSessionId = c
+                            .getLong(DatabaseConstants.COLUMN_PARAMETERS_POS_SESSION_ID);
+                    Log.d(Constants.LOGTAG, "Checking param with sid:" + jobSessionId
+                            + " (against " + sessionId + ")");
+                    if (jobSessionId == sessionId) {
+                        String key = c.getString(DatabaseConstants.COLUMN_PARAMETERS_POS_KEY);
+                        int valueType = c
+                                .getInt(DatabaseConstants.COLUMN_PARAMETERS_POS_VALUE_TYPE);
+                        if (valueType == DatabaseConstants.PARAMETERS_VALUE_TYPE_STRING) {
+                            String value = c
+                                    .getString(DatabaseConstants.COLUMN_PARAMETERS_POS_VALUE);
+                            items.put(key, value);
+                        } else if (valueType == DatabaseConstants.PARAMETERS_VALUE_TYPE_INTEGER) {
+                            int value = c.getInt(DatabaseConstants.COLUMN_PARAMETERS_POS_VALUE);
+                            items.put(key, value);
+                        }
+                    }
+                    c.moveToNext();
+                }
+                if (Constants.DEBUG) {
+                    Log.d(Constants.LOGTAG,
+                            "Finished checking for parameters in DB (" + items.size()
+                                    + ") total parameters in database: " + c.getCount());
+                }
+            }
+        } catch (SQLiteException e) {
+            Log.e(TAG,
+                    "Got error when trying to read parameters from DB. Error: " + e.getMessage());
+        } finally {
+            if (c != null) {
+                c.close();
+            }
+            lock.unlock();
+        }
+        return items;
+    }
+
     public void purgeDatabase() {
 
         try {
             lock.lock();
-            sqlDb.execSQL("delete from " + DatabaseConstants.DATABASE_TABLE_NAME);
+            sqlDb.execSQL("delete from " + DatabaseConstants.DATABASE_TASKS_TABLE_NAME);
+            sqlDb.execSQL("delete from " + DatabaseConstants.DATABASE_PARAMETERS_TABLE_NAME);
         } catch (SQLiteException e) {
-            Log.e(TAG, "getDatabaseContent: We have a exception, will not empty database:"
-                    + e.getMessage());
+            Log.e(TAG,
+                    "getDatabaseContent: We have a exception, will not empty database:"
+                            + e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -353,7 +476,8 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         }
         try {
             lock.lock();
-            db.execSQL(DatabaseConstants.SQL_CREATE_DATABASE);
+            db.execSQL(DatabaseConstants.SQL_CREATE_DATABASE_TASKS);
+            db.execSQL(DatabaseConstants.SQL_CREATE_DATABASE_PARAMETERS);
         } finally {
             lock.unlock();
         }
@@ -362,10 +486,8 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (Constants.DEBUG) {
-            Log.d(TAG, "We are asked to convert from version " + oldVersion +
-                    " to new version " + newVersion);
-            db.execSQL("DROP TABLE IF EXISTS");
-            onCreate(db);
+            Log.d(TAG, "We are asked to convert from version " + oldVersion + " to new version "
+                    + newVersion);
         }
     }
 }

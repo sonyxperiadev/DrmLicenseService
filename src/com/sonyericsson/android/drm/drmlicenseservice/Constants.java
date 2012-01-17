@@ -16,7 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Ericsson Mobile Communications AB.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -120,5 +122,57 @@ public class Constants {
     public static final String DRM_METERING_URL = "MeteringUrl";
 
     public static final String DRM_METERING_STATUS = "MeteringStatus";
+
+    public static final String DRM_KEYPARAM_LASTFAIL = "LASTFAIL";
+
+    public static final String DRM_KEYPARAM_CUSTOM_DATA = "CUSTOM_DATA";
+
+    public static final String DRM_KEYPARAM_CUSTOM_DATA_USED = "CUSTOM_DATA_USED";
+
+    public static final String DRM_KEYPARAM_CUSTOM_DATA_PREFIX = "CUSTOM_DATA_PREFIX";
+
+    public static final String DRM_KEYPARAM_CUSTOM_DATA_SUFFIX = "CUSTOM_DATA_SUFFIX";
+
+    public static final String DRM_KEYPARAM_USER_AGENT = "USER_AGENT";
+
+    public static final String DRM_KEYPARAM_FRIENDLY_NAME = "FRIENDLY_NAME";
+
+    public static final String DRM_KEYPARAM_HTTP_HEADERS = "HTTP_HEADERS";
+
+    public static final String DRM_KEYPARAM_REDIRECT_LIMIT = "REDIRECT_LIMIT";
+
+    public static final String DRM_KEYPARAM_TIME_OUT = "TIME_OUT";
+
+    public static final String DRM_KEYPARAM_RETRY_COUNT = "RETRY_COUNT";
+
+    public static final String DRM_KEYPARAM_WEB_INITIATOR = "WEB_INITIATOR";
+
+    public static final String DRM_KEYPARAM_REDIRECT_URL = "REDIRECT_URL";
+
+    public static final String DRM_KEYPARAM_GROUP_COUNT = "GROUP_COUNT";
+
+    public static final String DRM_KEYPARAM_GROUP_NUMBER = "GROUP_NUMBER";
+
+    public static final String DRM_KEYPARAM_CONTENT_URL = "CONTENT_URL";
+
+    public static final String DRM_KEYPARAM_TYPE = "TYPE";
+
+    public static final String DRM_KEYPARAM_FILEPATH = "FILEPATH";
+
+    public static final String DRM_KEYPARAM_HTTP_ERROR = "HTTP_ERROR";
+
+    public static final String DRM_KEYPARAM_INNER_HTTP_ERROR = "INNER_HTTP_ERROR";
+
+    public static final int PROGRESS_TYPE_WEBINI_COUNT = 1;
+
+    public static final int PROGRESS_TYPE_FINISHED_JOB = 2;
+
+    public static final int PROGRESS_TYPE_FINISHED_WEBINI = 3;
+
+    public static final int PROGRESS_TYPE_CANCELLED = 4;
+
+    public static final int PROGRESS_TYPE_RENEW_RIGHTS = 5;
+
+    public static final int PROGRESS_TYPE_CONTENT_DOWNLOADED = 6;
 
 }

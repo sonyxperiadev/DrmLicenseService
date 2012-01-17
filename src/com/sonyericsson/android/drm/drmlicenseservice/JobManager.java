@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -27,6 +29,7 @@ package com.sonyericsson.android.drm.drmlicenseservice;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.DrmFeedbackJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.StackableJob;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
@@ -34,6 +37,7 @@ import android.os.Message;
 import android.util.Log;
 
 import java.util.EmptyStackException;
+import java.util.Map;
 import java.util.Stack;
 
 public class JobManager extends Thread {
@@ -67,19 +71,19 @@ public class JobManager extends Thread {
 
     protected long mSessionId;
 
-    public JobManager(Context context, Handler handler, int id, DrmJobDatabase msDb) {
-        this(context, handler, null, null, id, msDb);
+    public JobManager(Context context, Handler handler, int id, DrmJobDatabase jobDb) {
+        this(context, handler, null, null, id, jobDb);
     }
 
     public JobManager(Context context, Handler handler, Bundle parameters,
-            IDrmLicenseServiceCallback callbackHandler, int id, DrmJobDatabase msDb) {
+            IDrmLicenseServiceCallback callbackHandler, int id, DrmJobDatabase jobDb) {
         super();
         mContext = context;
         mHandler = handler;
         mParameters = parameters;
         mCallbackHandler = callbackHandler;
         mId = id;
-        mJobDb = msDb;
+        mJobDb = jobDb;
         mSessionId = System.currentTimeMillis();
     }
 
@@ -129,10 +133,6 @@ public class JobManager extends Thread {
         return maxGroupCount;
     }
 
-    public Bundle getParameters() {
-        return mParameters;
-    }
-
     public boolean getKeepRunning() {
         return keepRunning;
     }
@@ -177,6 +177,13 @@ public class JobManager extends Thread {
                         mJobDb.beginTransaction();
                         StackableJob job = mJobStack.pop();
                         currentGroupId = job.getGroupId();
+                        if (lastFailingGroupId == -1) {
+                            // Check if have a stored id
+                            if (hasParameter(Constants.DRM_KEYPARAM_LASTFAIL)) {
+                                lastFailingGroupId = getIntParameter(
+                                        Constants.DRM_KEYPARAM_LASTFAIL);
+                            }
+                        }
                         if (currentGroupId == lastFailingGroupId) {
                             if (Constants.DEBUG) {
                                 Log.d(Constants.LOGTAG, "Will notify failure to job: "
@@ -197,6 +204,9 @@ public class JobManager extends Thread {
                                 }
                             }
                         }
+                        if (lastFailingGroupId == currentGroupId) {
+                            addParameter(Constants.DRM_KEYPARAM_LASTFAIL, lastFailingGroupId);
+                        }
                         job.removeFromDb(mJobDb);
                         mJobDb.setTransactionSuccessful();
                     } finally {
@@ -204,6 +214,7 @@ public class JobManager extends Thread {
                     }
                     System.gc();
                 } while (!mJobStack.isEmpty() && !isReadyToEvaluteKeepRunning());
+                removeParameter(Constants.DRM_KEYPARAM_LASTFAIL);
             }
         } catch (EmptyStackException e) {
         }
@@ -221,7 +232,7 @@ public class JobManager extends Thread {
 
         if (!keepRunning) {
             // We have been cancelled
-            pushJobNoDatabase(new DrmFeedbackJob(DrmFeedbackJob.TYPE_CANCELLED));
+            pushJobNoDatabase(new DrmFeedbackJob(Constants.PROGRESS_TYPE_CANCELLED));
             mJobStack.pop().executeAfterEarlierFailure();
         }
 
@@ -256,12 +267,73 @@ public class JobManager extends Thread {
         return jobToRemove;
     }
 
+    public final Bundle getParameters() {
+        if (mParameters != null) {
+            return (Bundle)mParameters.clone();
+        } else {
+            return null;
+        }
+    }
+
+    public void removeParameter(String key) {
+        if (mParameters != null) {
+            mParameters.remove(key);
+        }
+
+        mJobDb.removeParameter(mSessionId, key);
+    }
+
+    public boolean hasParameter(String key) {
+        if (mParameters != null) {
+            return mParameters.containsKey(key);
+        } else {
+            return false;
+        }
+    }
+
+    public String getStringParameter(String key) {
+        if (mParameters != null) {
+            return mParameters.getString(key);
+        } else {
+            return null;
+        }
+    }
+
+    public int getIntParameter(String key) {
+        if (mParameters != null) {
+            return mParameters.getInt(key);
+        } else {
+            return 0;
+        }
+    }
+
+    public Bundle getBundleParameter(String key) {
+        if (mParameters != null) {
+            return mParameters.getBundle(key);
+        } else {
+            return null;
+        }
+    }
+
     public void addParameter(String key, String value) {
         if (value != null) {
             if (mParameters == null) {
                 mParameters = new Bundle();
             }
             mParameters.putString(key, value);
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_SESSION_ID, mSessionId);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_KEY, key);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_VALUE_TYPE,
+                DatabaseConstants.PARAMETERS_VALUE_TYPE_STRING);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_VALUE, value);
+
+        long result = mJobDb.insertParameter(values);
+        if (Constants.DEBUG) {
+            Log.d(Constants.LOGTAG, "Added s-parameter to db : " + key + "->" + value + " (res="
+                    + result + ")");
         }
     }
 
@@ -270,6 +342,19 @@ public class JobManager extends Thread {
             mParameters = new Bundle();
         }
         mParameters.putInt(key, value);
+
+        ContentValues values = new ContentValues();
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_SESSION_ID, mSessionId);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_KEY, key);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_VALUE_TYPE,
+                DatabaseConstants.PARAMETERS_VALUE_TYPE_INTEGER);
+        values.put(DatabaseConstants.COLUMN_PARAMETERS_NAME_VALUE, value);
+
+        long result = mJobDb.insertParameter(values);
+        if (Constants.DEBUG) {
+            Log.d(Constants.LOGTAG, "Added i-parameter to db : " + key + "->" + value + " (res="
+                    + result + ")");
+        }
     }
 
     public void addParameter(String key, Bundle value) {
@@ -279,5 +364,22 @@ public class JobManager extends Thread {
             }
             mParameters.putBundle(key, value);
         }
+    }
+
+    public void restoreState() {
+        Map<String, ?> items = mJobDb.getJobParameters(mSessionId);
+        for (String key : items.keySet()) {
+            Object value = items.get(key);
+            if (mParameters == null) {
+                mParameters = new Bundle();
+            }
+            Log.d(Constants.LOGTAG, "Restoring parameter from db: " + key + "=" + value);
+            if (value instanceof String) {
+                mParameters.putString(key, (String)value);
+            } else if (value instanceof Integer) {
+                mParameters.putInt(key, (Integer)value);
+            }
+        }
+        Log.d(Constants.LOGTAG, "Restored " + items.size() + " parameters from db");
     }
 }

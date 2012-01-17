@@ -16,7 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Ericsson Mobile Communications AB.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -38,7 +40,6 @@ public class DrmLicenseServiceBroadcastReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String intentAction = intent.getAction();
-        //Log.d(Constants.LOGTAG, "Broadcast receiver got intent " + intent);
         if (intentAction.equals(Constants.DRM_RENEW_RIGHTS_ACTION)) {
             // Start service to handle the renew flow
             if (Constants.DEBUG) {

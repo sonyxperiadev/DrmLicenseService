@@ -16,7 +16,9 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
- * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+ * Sony Ericsson Mobile Communications AB.
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -84,23 +86,21 @@ public abstract class StackableJob {
         if (xmlCustomData != null) {
             customData = xmlCustomData;
         }
-        if (mJobManager.getParameters() != null) {
-            if (mJobManager.getParameters().containsKey("CUSTOM_DATA")) {
-                customData = mJobManager.getParameters().getString("CUSTOM_DATA");
-                if (customData != null) {
-                    if (mJobManager.getParameters().containsKey("CUSTOM_DATA_PREFIX")) {
-                        String customDataPrefix = mJobManager.getParameters().getString(
-                                "CUSTOM_DATA_PREFIX");
-                        if (customDataPrefix != null) {
-                            customData = customDataPrefix + customData;
-                        }
+        if (mJobManager.hasParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA)) {
+            customData = mJobManager.getStringParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA);
+            if (customData != null) {
+                if (mJobManager.hasParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_PREFIX)) {
+                    String customDataPrefix = mJobManager.getStringParameter(
+                            Constants.DRM_KEYPARAM_CUSTOM_DATA_PREFIX);
+                    if (customDataPrefix != null) {
+                        customData = customDataPrefix + customData;
                     }
-                    if (mJobManager.getParameters().containsKey("CUSTOM_DATA_SUFFIX")) {
-                        String customDataSuffix = mJobManager.getParameters().getString(
-                                "CUSTOM_DATA_SUFFIX");
-                        if (customDataSuffix != null) {
-                            customData = customData + customDataSuffix;
-                        }
+                }
+                if (mJobManager.hasParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_SUFFIX)) {
+                    String customDataSuffix = mJobManager.getStringParameter(
+                            Constants.DRM_KEYPARAM_CUSTOM_DATA_SUFFIX);
+                    if (customDataSuffix != null) {
+                        customData = customData + customDataSuffix;
                     }
                 }
             }
@@ -115,8 +115,8 @@ public abstract class StackableJob {
         if (!mJobManager.getKeepRunning()) {
             return false;
         }
-        HttpClient.Response response = HttpClient.post(mJobManager.getSessionId(), url,
-                getType(), data, mJobManager.getParameters());
+        HttpClient.Response response = HttpClient.post(mJobManager.getSessionId(), url, getType(),
+                data, mJobManager.getParameters());
         return handleResponse(response);
     }
 
@@ -125,38 +125,27 @@ public abstract class StackableJob {
         if (response != null) {
             switch (response.getStatus()) {
                 case 200:
-                    // Log.d(Constants.LOGTAG,
-                    // "Response is ok, sending to PK...");
                     isOk = handleResponse200(response.getData());
                     if (isOk) {
-                        String customData = new CustomDataParser()
-                                .parseXML(response.getByteData());
-                        // Log.d("test", "Customdata returned from server was: "
-                        // + customData);
+                        String customData = new CustomDataParser().parseXML(response.getByteData());
                         if (customData != null) {
-                            mJobManager.addParameter("CUSTOM_DATA_USED", customData);
+                            mJobManager.addParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_USED,
+                                    customData);
                         }
                     }
                     break;
                 case 500:
                     boolean messageHandled = false;
-                    // Log.w(Constants.LOGTAG,
-                    // "500 - Error message from server");
-                    ErrorData errorData = new ErrorMessageParser()
-                            .parseXML(response.getByteData());
+                    ErrorData errorData = new ErrorMessageParser().parseXML(response.getByteData());
                     String statusCode = null;
                     if (errorData != null) {
                         String customData = errorData.getValue("CustomData");
-                        // Log.d("test",
-                        // "Customdata in errorcode returned from server was: "
-                        // + customData);
                         if (customData != null) {
-                            mJobManager.addParameter("CUSTOM_DATA_USED", customData);
+                            mJobManager.addParameter(Constants.DRM_KEYPARAM_CUSTOM_DATA_USED,
+                                    customData);
                         }
 
                         statusCode = errorData.getValue("StatusCode");
-                        // Log.w(Constants.LOGTAG, "Status code from server:" +
-                        // statusCode);
                         if (statusCode != null && statusCode.length() > 0) {
                             Method m = null;
                             try {
@@ -184,34 +173,37 @@ public abstract class StackableJob {
                         }
                     } else {
                         // XML parsing failed
-                        mJobManager.addParameter("HTTP_ERROR", -5);
-                        mJobManager.addParameter("INNER_HTTP_ERROR", response.getStatus());
+                        mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
+                        mJobManager.addParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR,
+                                response.getStatus());
                         messageHandled = true;
                     }
                     if (!messageHandled) {
                         isOk = sendToResponseCodeHandler(response);
                         if (isOk == false) {
-                            mJobManager.addParameter("HTTP_ERROR", response.getStatus());
+                            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR,
+                                    response.getStatus());
                             if (errorData != null) {
                                 String redirectUrl = errorData.getValue("RedirectUrl");
                                 if (redirectUrl != null && redirectUrl.length() > 0) {
-                                    mJobManager.addParameter("REDIRECT_URL", redirectUrl);
+                                    mJobManager.addParameter(Constants.DRM_KEYPARAM_REDIRECT_URL,
+                                            redirectUrl);
                                 }
                             }
                             if (statusCode != null && statusCode.length() > 0) {
                                 int value = Long.decode(statusCode).intValue();
-                                mJobManager.addParameter("INNER_HTTP_ERROR", value);
+                                mJobManager.addParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR,
+                                        value);
                             }
                         }
                     }
                     break;
                 default:
-                    // Log.d(Constants.LOGTAG,
-                    // "Server request failed failed with code " +
-                    // response.getStatus());
-                    mJobManager.addParameter("HTTP_ERROR", response.getStatus());
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR,
+                            response.getStatus());
                     if (response.getInnerStatus() != 0) {
-                        mJobManager.addParameter("INNER_HTTP_ERROR", response.getInnerStatus());
+                        mJobManager.addParameter(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR,
+                                response.getInnerStatus());
                     }
 
                     isOk = sendToResponseCodeHandler(response);
@@ -266,7 +258,7 @@ public abstract class StackableJob {
      * @return Status of the job. If false is returned, nothing was written to
      *         the db
      */
-    public abstract boolean writeToDB(DrmJobDatabase msDb);
+    public abstract boolean writeToDB(DrmJobDatabase jobDb);
 
     /**
      * Reads the job from the job database
@@ -280,9 +272,9 @@ public abstract class StackableJob {
      *
      * @return Status of the remove.
      */
-    public boolean removeFromDb(DrmJobDatabase msDb) {
+    public boolean removeFromDb(DrmJobDatabase jobDb) {
         if (getDatabaseId() != -1) {
-            return msDb.remove(getDatabaseId());
+            return jobDb.removeTask(getDatabaseId());
         }
         return false;
     }
