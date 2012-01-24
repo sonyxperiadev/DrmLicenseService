@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.sonyericsson.android.drm.drmlicenseservice"
+    android:versionCode="1"
+    android:versionName="1.0.0">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application android:label="Drm License Service">
+
+        <!-- *************** Drm License Service things *************** -->
+        <service android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseService"
+            android:process=":remote" android:permission="android.permission.INTERNET">
+            <intent-filter>
+                <!-- Listen to ServiceConnections for AIDL interface -->
+                <action android:name="com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseService" />
+            </intent-filter>
+        </service>
+        <!--
+            The receiver or activity that catches the intent to renew the content rights and
+            starts the service
+        -->
+        <activity android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseActivity"
+            android:exported="true">
+            <!-- *************** Filter for MS PlayReady Web initiators *************** -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                 <data android:scheme="https" />
+                <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                 <data android:scheme="http" />
+                <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                 <data android:scheme="file" />
+                <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseServiceBroadcastReceiver"
+            android:exported="true">
+            <!-- * Need boot completed to be able to clear the job database of unfinished jobs * -->
+            <intent-filter>
+                <action android:name ="android.intent.action.BOOT_COMPLETED"/>
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- *************** Filter for MS PlayReady files *************** -->
+            <intent-filter>
+                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
+                <data android:scheme="file" android:pathPattern=".*\\.isma"
+                    android:host="content.protected" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
+                <data android:scheme="file" android:pathPattern=".*\\.ismv"
+                    android:host="content.protected" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
+                <data android:scheme="file" android:pathPattern=".*\\.pya"
+                    android:host="content.protected" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
+                <data android:scheme="file" android:pathPattern=".*\\.pyv"
+                    android:host="content.protected" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

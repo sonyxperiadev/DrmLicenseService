@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ *
+ * Proguard build will fail if there are no resources. This file serves
+ * as a workaround for that limitation
+ *
+ *-->
+<resources xmlns:android="http://schemas.android.com/apk/res/android" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+</resources>
