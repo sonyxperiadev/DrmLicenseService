@@ -16,6 +16,7 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
  * Sony Ericsson Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
@@ -26,11 +27,19 @@ package com.sonyericsson.android.drm.drmlicenseservice.jobs;
 
 import com.sonyericsson.android.drm.drmlicenseservice.DatabaseConstants;
 import com.sonyericsson.android.drm.drmlicenseservice.DrmJobDatabase;
+import com.sonyericsson.android.drm.drmlicenseservice.R;
+
 import android.app.DownloadManager;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.drm.DrmManagerClient;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -155,20 +164,66 @@ public class DownloadContentJob extends StackableJob {
                     int localUriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
                     mDownloadFilePath = mCursor.getString(localUriIndex);
 
-                    if (endStatus == null) {
-                        if (statusCode == DownloadManager.STATUS_SUCCESSFUL) {
-                            endStatus = "SUCCESS";
-                        } else if (statusCode == DownloadManager.STATUS_FAILED) {
-                            int reasonIndex = mCursor
-                                    .getColumnIndex(DownloadManager.COLUMN_REASON);
-                            int reason = mCursor.getInt(reasonIndex);
-                            endStatus = getStatusCodeForFailedDownload(reason);
-                        } else if (statusCode == DownloadManager.STATUS_PAUSED) {
-                            int reasonIndex = mCursor
-                                    .getColumnIndex(DownloadManager.COLUMN_REASON);
-                            int reason = mCursor.getInt(reasonIndex);
-                            endStatus = getStatusCodeForFailedDownload(reason);
-                        }
+                    if (statusCode == DownloadManager.STATUS_SUCCESSFUL) {
+                        endStatus = "SUCCESS";
+                        Context context = mJobManager.getContext();
+
+                        // Get filename of downloaded content
+                        int titleIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_TITLE);
+                        String title = mCursor.getString(titleIndex);
+
+                        // Get mimetype of downloaded content
+                        int uriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                        String path = mCursor.getString(uriIndex);
+                        path = path.replace("file://", "");
+                        DrmManagerClient drm = new DrmManagerClient(context);
+                        String mimeType = drm.getOriginalMimeType(path);
+
+                        // Create an Intent that will be issued when user taps a
+                        // notification of download result .
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setDataAndType(Uri.fromFile(new File(path)), mimeType);
+                        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent,
+                                0);
+
+                        // Create and Show notification
+                        Resources res = context.getResources();
+                        String sentence = res.getString(R.string.status_successful_download);
+                        Notification notification = new Notification(
+                                android.R.drawable.stat_sys_download_done, null,
+                                System.currentTimeMillis());
+                        notification.setLatestEventInfo(context, title, sentence, contentIntent);
+                        notification.flags = Notification.FLAG_AUTO_CANCEL;
+                        NotificationManager nManager = (NotificationManager)context
+                                .getSystemService(Context.NOTIFICATION_SERVICE);
+                        nManager.notify((int)mDownloadId, notification);
+                    } else if (statusCode == DownloadManager.STATUS_FAILED) {
+                        int reasonIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_REASON);
+                        int reason = mCursor.getInt(reasonIndex);
+                        endStatus = getStatusCodeForFailedDownload(reason);
+
+                        Context context = mJobManager.getContext();
+
+                        // Get filename of downloaded content
+                        int uriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_URI);
+                        String uri = mCursor.getString(uriIndex);
+
+                        // Create an Intent that will be issued when user
+                        // taps a notification of download result.
+                        Intent intent = new Intent(DownloadManager.ACTION_VIEW_DOWNLOADS);
+                        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent,
+                                0);
+
+                        // Create and Show notification
+                        Resources res = context.getResources();
+                        String sentence = res.getString(R.string.status_failed_download);
+                        Notification notification = new Notification(
+                                android.R.drawable.stat_sys_download_done, null,
+                                System.currentTimeMillis());
+                        notification.setLatestEventInfo(context, uri, sentence, contentIntent);
+                        NotificationManager nManager = (NotificationManager)context
+                                .getSystemService(Context.NOTIFICATION_SERVICE);
+                        nManager.notify((int)mDownloadId, notification);
                     }
                 } else {
                     // if user has removed download from list the cursor will be
@@ -224,8 +279,6 @@ public class DownloadContentJob extends StackableJob {
                 filePathUri.getEncodedPath()
             }, null, null);
             mStatus = true;
-        } else {
-            mDwldManager.remove(this.mDownloadId);
         }
 
         mDwldManager = null;

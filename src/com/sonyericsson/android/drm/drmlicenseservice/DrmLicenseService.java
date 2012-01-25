@@ -44,6 +44,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.HashMap;
 
@@ -195,6 +196,11 @@ public class DrmLicenseService extends Service {
                         jm.start();
                     }
                 }.start();
+
+                // Create a toast that is shown when WebInitiator link was tapped by user
+                // in Browser, or when a downloaded WI was tapped in notification bar.
+                int resId = R.string.status_start_download;
+                Toast.makeText(fContext, resId, Toast.LENGTH_SHORT).show();
             } else {
                 // Log.d(Constants.LOGTAG,
                 // "Uri is null or incorrect. Should not happen. "
