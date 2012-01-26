@@ -51,10 +51,10 @@ public class ProcessMeteringDataJob extends StackableJob {
         return request;
     }
 
-    private DrmInfoRequest createRequestToProcessMeterCertResponse(String mimeType, String data) {
+    private DrmInfoRequest createRequestToProcessMeterDataResponse(String mimeType, String data) {
         DrmInfoRequest request = new DrmInfoRequest(DrmInfoRequest.TYPE_RIGHTS_ACQUISITION_INFO,
                 mimeType);
-        request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_METER_CERT_RESPONSE);
+        request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_METER_DATA_RESPONSE);
         request.put(Constants.DRM_DATA, data);
         return request;
     }
@@ -97,10 +97,10 @@ public class ProcessMeteringDataJob extends StackableJob {
         boolean isOk = false;
         //Log.d(Constants.LOGTAG, "Metering report response received from server");
         // Send message to engine to process metering data response
-        DrmInfo reply = sendInfoRequest(createRequestToProcessMeterCertResponse(
+        DrmInfo reply = sendInfoRequest(createRequestToProcessMeterDataResponse(
                 Constants.DRM_DLS_PIFF_MIME, data));
         if (reply == null) {
-            reply = sendInfoRequest(createRequestToProcessMeterCertResponse(
+            reply = sendInfoRequest(createRequestToProcessMeterDataResponse(
                     Constants.DRM_DLS_MIME, data));
         }
         if (reply != null) {
