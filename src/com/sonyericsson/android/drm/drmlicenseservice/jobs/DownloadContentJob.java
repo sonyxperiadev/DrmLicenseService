@@ -80,7 +80,11 @@ public class DownloadContentJob extends StackableJob {
                     String directory = Environment.DIRECTORY_DOWNLOADS;
                     String filename = getUniqueFileName(
                             Environment.getExternalStoragePublicDirectory(directory), lastPart);
-                    request.setDestinationInExternalPublicDir(directory, filename);
+                    try {
+                        request.setDestinationInExternalPublicDir(directory, filename);
+                    } catch (IllegalStateException e) {
+                        return false;
+                    }
                     request.setVisibleInDownloadsUi(true);
                     request.setShowRunningNotification(true);
 
@@ -104,9 +108,6 @@ public class DownloadContentJob extends StackableJob {
                     query.setFilterById(mDownloadId);
                     mCursor = mDwldManager.query(query);
                     if (mCursor != null && mCursor.moveToFirst()) {
-                        int localUriIndex = mCursor
-                                .getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-                        mDownloadFilePath = mCursor.getString(localUriIndex);
                         mCursor.registerContentObserver(mObserver);
                         Looper.loop();
                     }
@@ -151,6 +152,9 @@ public class DownloadContentJob extends StackableJob {
                 if (mCursor.moveToFirst()) {
                     int statusIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
                     int statusCode = mCursor.getInt(statusIndex);
+                    int localUriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
+                    mDownloadFilePath = mCursor.getString(localUriIndex);
+
                     if (endStatus == null) {
                         if (statusCode == DownloadManager.STATUS_SUCCESSFUL) {
                             endStatus = "SUCCESS";
@@ -180,7 +184,7 @@ public class DownloadContentJob extends StackableJob {
                     mObserver = null;
                 }
                 Looper.myLooper().quit();
-                finishDownload(Uri.parse(mDownloadFilePath), endStatus);
+                finishDownload(mDownloadFilePath, endStatus);
             }
         }
     }
@@ -210,13 +214,14 @@ public class DownloadContentJob extends StackableJob {
     /*
      * Send status report and clean up
      */
-    private void finishDownload(Uri filePath, String downloadStatus) {
+    private void finishDownload(String filePath, String downloadStatus) {
         // TODO re-add download to notification bar!
         mJobManager.pushJob(new DrmFeedbackJob(DrmFeedbackJob.TYPE_CONTENT_DOWNLOADED, filePath));
 
         if (downloadStatus.equals("SUCCESS") && filePath != null) {
+            Uri filePathUri = Uri.parse(filePath);
             MediaScannerConnection.scanFile(mJobManager.getContext(), new String[] {
-                filePath.getEncodedPath()
+                filePathUri.getEncodedPath()
             }, null, null);
             mStatus = true;
         } else {

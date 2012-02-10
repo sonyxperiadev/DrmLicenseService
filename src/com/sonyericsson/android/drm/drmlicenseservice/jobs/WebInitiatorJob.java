@@ -43,7 +43,10 @@ import android.drm.DrmInfoEvent;
 import android.net.Uri;
 import android.util.Log;
 
+import java.io.BufferedInputStream;
 import java.io.CharArrayReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.MalformedURLException;
@@ -66,156 +69,177 @@ public class WebInitiatorJob extends StackableJob {
     public boolean executeNormal() {
         boolean status = false;
         String host;
+        Uri uriToRemove = null;
 
-        if (mJobManager != null && mUri != null && (host = mUri.getHost()) != null
-                && host.length() > 0) {
+        if (mJobManager != null && mUri != null) {
+            String respData = null;
             try {
-                Reader reader = null;
-                Response response = HttpClient.get(mJobManager.getSessionId(), mUri.toString(),
-                        mJobManager.getParameters());
-                if (response != null && response.getStatus() == 200) {
-                    String respData = response.getData();
-                    if (respData != null && respData.length() > 0) {
-                        // Prepare a reader based on our input xml string
-                        int length = respData.length();
-                        char c[] = new char[length];
-                        respData.getChars(0, length, c, 0);
-                        reader = new CharArrayReader(c);
-
-                        // Get a SAXParser from the SAXPArserFactory
-                        SAXParserFactory spf = SAXParserFactory.newInstance();
-                        SAXParser sp = spf.newSAXParser();
-
-                        // Get the XMLReader of the SAXParser we created
-                        XMLReader xr = sp.getXMLReader();
-                        // Create a new ContentHandler and apply it to the
-                        // XML-Reader
-                        WebInitiatorHandler triggerHandler = new WebInitiatorHandler();
-                        xr.setContentHandler(triggerHandler);
-
-                        // Parse the xml-data from our URL (ie Uri)
-                        xr.parse(new InputSource(reader));
-
-                        // Parsing is completed
-                        ArrayDeque<InitiatorDataItem> dataAll = triggerHandler.getData();
-
-                        if (dataAll != null) {
-                            // Loop through the parts of the initiator (it may
-                            // be multiple parts).
-                            // Starting with the last one to get the items on
-                            // the job stack
-                            // in the right order.
-                            boolean sendLicReqStartMsg = false;
-                            mJobManager.setMaxJobGroups(dataAll.size());
-                            while (dataAll.size() > 0) {
-                                InitiatorDataItem item = dataAll.removeLast();
-                                HashMap<String, String> data = item.data;
-                                String type = item.type;
-
-                                if (type.equals("LicenseAcquisition")) {
-                                    String kid = data.get("LicenseAcquisition.KID");
-                                    String content = data.get("LicenseAcquisition.Content");
-                                    String header = data.get("LicenseAcquisition.Header");
-                                    String customData = data.get("LicenseAcquisition.CustomData");
-                                    String luiUrl = data.get("LicenseAcquisition.LUI_URL");
-                                    if (header != null && header.length() > 0 && kid != null
-                                            && kid.length() > 0) {
-                                        if (content != null && content.length() > 0) {
-                                            mJobManager.pushJob(new DrmFeedbackJob(
-                                                    DrmFeedbackJob.TYPE_FINISHED_JOB,
-                                                    "AcquireLicense", Uri.parse(content)));
-                                            mJobManager.pushJob(new DownloadContentJob(content));
-                                        } else {
-                                            mJobManager.pushJob(new DrmFeedbackJob(
-                                                    DrmFeedbackJob.TYPE_FINISHED_JOB,
-                                                    "AcquireLicense"));
-                                        }
-                                        if (luiUrl != null) {
-                                            mJobManager
-                                                    .pushJob(new LaunchLuiUrlIfFailureJob(luiUrl));
-                                        }
-                                        mJobManager.pushJob(new AcquireLicenseJob(header,
-                                                customData));
-                                        sendLicReqStartMsg = true;
-                                        status = true;
-                                    } else {
-                                        if (Constants.DEBUG) {
-                                            Log.d(Constants.LOGTAG,
-                                                    "Missing or incorrect Header/Kid or LUI_URL");
-                                        }
-                                    }
-                                } else if (type.equals("JoinDomain")) {
-                                    mJobManager.pushJob(new DrmFeedbackJob(
-                                            DrmFeedbackJob.TYPE_FINISHED_JOB, "JoinDomain"));
-                                    mJobManager.pushJob(new JoinDomainJob(data
-                                            .get("JoinDomain.DomainController"), data
-                                            .get("JoinDomain.DS_ID"), data
-                                            .get("JoinDomain.AccountID"), data
-                                            .get("JoinDomain.Revision"), data
-                                            .get("JoinDomain.CustomData")));
-                                    sendLicReqStartMsg = true;
-                                    status = true;
-                                } else if (type.equals("LeaveDomain")) {
-                                    mJobManager.pushJob(new DrmFeedbackJob(
-                                            DrmFeedbackJob.TYPE_FINISHED_JOB, "LeaveDomain"));
-                                    mJobManager.pushJob(new LeaveDomainJob(data
-                                            .get("LeaveDomain.DomainController"), data
-                                            .get("LeaveDomain.DS_ID"), data
-                                            .get("LeaveDomain.AccountID"), data
-                                            .get("LeaveDomain.Revision"), data
-                                            .get("LeaveDomain.CustomData")));
-                                    status = true;
-                                } else if (type.equals("Metering")) {
-                                    mJobManager.pushJob(new DrmFeedbackJob(
-                                            DrmFeedbackJob.TYPE_FINISHED_JOB,
-                                            "GetMeteringCertificate"));
-                                    mJobManager.pushJob(new ProcessMeteringDataJob(data
-                                            .get("Metering.CertificateServer"), data
-                                            .get("Metering.MeteringID"), data
-                                            .get("Metering.CustomData"), data
-                                            .get("Metering.MaxPackets"), true));
-                                    status = true;
-
-                                } else {
-                                    if (Constants.DEBUG) {
-                                        Log.w(Constants.LOGTAG, "Unknown initiator: " + type);
-                                    }
-                                    status = false;
-                                    break;
-                                }
-                                mJobManager.createNewJobGroup();
+                if ("http".equals(mUri.getScheme()) && ((host = mUri.getHost()) != null)
+                        && host.length() > 0) {
+                    Response response = HttpClient.get(mJobManager.getSessionId(), mUri.toString(),
+                            mJobManager.getParameters());
+                    if (response != null && response.getStatus() == 200) {
+                        respData = response.getData();
+                        if (respData == null || respData.length() == 0) {
+                            if (Constants.DEBUG) {
+                                Log.d(Constants.LOGTAG, "Request to " + mUri.toString()
+                                        + " did not return any data.");
                             }
-                            mJobManager.pushJob(new DrmFeedbackJob(
-                                    DrmFeedbackJob.TYPE_WEBINI_COUNT, mUri));
-                            if (sendLicReqStartMsg == true && status == true) {
-                                ServiceUtility.sendOnInfoResult(mJobManager.getContext(),
-                                        DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, mUri.getEncodedPath());
-                            }
-                        } else {
                             if (mJobManager != null) {
                                 mJobManager.addParameter("HTTP_ERROR", -5);
                             }
-                            // Log.w(Constants.LOGTAG, "Parsed data is null");
                         }
                     } else {
                         if (Constants.DEBUG) {
-                            Log.d(Constants.LOGTAG, "Request to " + mUri.toString()
-                                    + " did not return any data.");
+                            Log.d(Constants.LOGTAG, "Request to " + mUri.toString() + " failed.");
                         }
+                        if (mJobManager != null && response != null) {
+                            mJobManager.addParameter("HTTP_ERROR", response.getStatus());
+                            int innerHttpError = response.getInnerStatus();
+                            if (innerHttpError != 0) {
+                                mJobManager.addParameter("INNER_HTTP_ERROR", innerHttpError);
+                            }
+                        }
+                    }
+                } else if ("file".equals(mUri.getScheme())) {
+                    // This will only happen if file is loaded from Download
+                    // List
+                    FileInputStream fis = new FileInputStream(new File(mUri.getPath()));
+                    BufferedInputStream bis = new BufferedInputStream(fis);
+                    StringBuffer buf = new StringBuffer();
+                    while (bis.available() > 0) {
+                        byte data[] = new byte[1024];
+                        int count = bis.read(data);
+                        buf.append(new String(data, 0, count));
+                    }
+                    respData = buf.toString();
+                    bis.close();
+                    fis.close();
+                    uriToRemove = mUri;
+                }
+
+                Reader reader = null;
+                if (respData != null && respData.length() > 0) {
+                    // Prepare a reader based on our input xml string
+                    int length = respData.length();
+                    char c[] = new char[length];
+                    respData.getChars(0, length, c, 0);
+                    reader = new CharArrayReader(c);
+
+                    // Get a SAXParser from the SAXPArserFactory
+                    SAXParserFactory spf = SAXParserFactory.newInstance();
+                    SAXParser sp = spf.newSAXParser();
+
+                    // Get the XMLReader of the SAXParser we created
+                    XMLReader xr = sp.getXMLReader();
+                    // Create a new ContentHandler and apply it to the
+                    // XML-Reader
+                    WebInitiatorHandler triggerHandler = new WebInitiatorHandler();
+                    xr.setContentHandler(triggerHandler);
+
+                    // Parse the xml-data from our URL (ie Uri)
+                    xr.parse(new InputSource(reader));
+
+                    // Parsing is completed
+                    ArrayDeque<InitiatorDataItem> dataAll = triggerHandler.getData();
+
+                    if (dataAll != null) {
+                        // Loop through the parts of the initiator (it may
+                        // be multiple parts).
+                        // Starting with the last one to get the items on
+                        // the job stack
+                        // in the right order.
+                        boolean sendLicReqStartMsg = false;
+                        mJobManager.setMaxJobGroups(dataAll.size());
+                        while (dataAll.size() > 0) {
+                            InitiatorDataItem item = dataAll.removeLast();
+                            HashMap<String, String> data = item.data;
+                            String type = item.type;
+
+                            if (type.equals("LicenseAcquisition")) {
+                                String kid = data.get("LicenseAcquisition.KID");
+                                String content = data.get("LicenseAcquisition.Content");
+                                String header = data.get("LicenseAcquisition.Header");
+                                String customData = data.get("LicenseAcquisition.CustomData");
+                                String luiUrl = data.get("LicenseAcquisition.LUI_URL");
+                                if (header != null && header.length() > 0 && kid != null
+                                        && kid.length() > 0) {
+                                    if (content != null && content.length() > 0) {
+                                        mJobManager.pushJob(new DrmFeedbackJob(
+                                                DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                                "AcquireLicense", Uri.parse(content)));
+                                        mJobManager.pushJob(new DownloadContentJob(content));
+                                    } else {
+                                        mJobManager.pushJob(new DrmFeedbackJob(
+                                                DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                                "AcquireLicense"));
+                                    }
+                                    if (luiUrl != null) {
+                                        mJobManager
+                                                .pushJob(new LaunchLuiUrlIfFailureJob(luiUrl));
+                                    }
+                                    mJobManager.pushJob(new AcquireLicenseJob(header,
+                                            customData));
+                                    sendLicReqStartMsg = true;
+                                    status = true;
+                                } else {
+                                    if (Constants.DEBUG) {
+                                        Log.d(Constants.LOGTAG,
+                                                "Missing or incorrect Header/Kid or LUI_URL");
+                                    }
+                                }
+                            } else if (type.equals("JoinDomain")) {
+                                mJobManager.pushJob(new DrmFeedbackJob(
+                                        DrmFeedbackJob.TYPE_FINISHED_JOB, "JoinDomain"));
+                                mJobManager.pushJob(new JoinDomainJob(data
+                                        .get("JoinDomain.DomainController"), data
+                                        .get("JoinDomain.DS_ID"), data
+                                        .get("JoinDomain.AccountID"), data
+                                        .get("JoinDomain.Revision"), data
+                                        .get("JoinDomain.CustomData")));
+                                sendLicReqStartMsg = true;
+                                status = true;
+                            } else if (type.equals("LeaveDomain")) {
+                                mJobManager.pushJob(new DrmFeedbackJob(
+                                        DrmFeedbackJob.TYPE_FINISHED_JOB, "LeaveDomain"));
+                                mJobManager.pushJob(new LeaveDomainJob(data
+                                        .get("LeaveDomain.DomainController"), data
+                                        .get("LeaveDomain.DS_ID"), data
+                                        .get("LeaveDomain.AccountID"), data
+                                        .get("LeaveDomain.Revision"), data
+                                        .get("LeaveDomain.CustomData")));
+                                status = true;
+                            } else if (type.equals("Metering")) {
+                                mJobManager.pushJob(new DrmFeedbackJob(
+                                        DrmFeedbackJob.TYPE_FINISHED_JOB,
+                                        "GetMeteringCertificate"));
+                                mJobManager.pushJob(new ProcessMeteringDataJob(data
+                                        .get("Metering.CertificateServer"), data
+                                        .get("Metering.MeteringID"), data
+                                        .get("Metering.CustomData"), data
+                                        .get("Metering.MaxPackets"), true));
+                                status = true;
+
+                            } else {
+                                if (Constants.DEBUG) {
+                                    Log.w(Constants.LOGTAG, "Unknown initiator: " + type);
+                                }
+                                status = false;
+                                break;
+                            }
+                            mJobManager.createNewJobGroup();
+                        }
+                        mJobManager.pushJob(new DrmFeedbackJob(
+                                DrmFeedbackJob.TYPE_WEBINI_COUNT, mUri));
+                        if (sendLicReqStartMsg == true && status == true) {
+                            ServiceUtility.sendOnInfoResult(mJobManager.getContext(),
+                                    DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, mUri.getEncodedPath());
+                        }
+                    } else {
                         if (mJobManager != null) {
                             mJobManager.addParameter("HTTP_ERROR", -5);
                         }
-                    }
-                } else {
-                    if (Constants.DEBUG) {
-                        Log.d(Constants.LOGTAG, "Request to " + mUri.toString() + " failed.");
-                    }
-                    if (mJobManager != null && response != null) {
-                        mJobManager.addParameter("HTTP_ERROR", response.getStatus());
-                        int innerHttpError = response.getInnerStatus();
-                        if (innerHttpError != 0) {
-                            mJobManager.addParameter("INNER_HTTP_ERROR", innerHttpError);
-                        }
+                        // Log.w(Constants.LOGTAG, "Parsed data is null");
                     }
                 }
             } catch (MalformedURLException e) {
@@ -254,6 +278,9 @@ public class WebInitiatorJob extends StackableJob {
                 && mJobManager.getParameters().containsKey("HTTP_ERROR")) {
             // Add job to notify that download/parsing of WebInitiator failed.
             mJobManager.pushJob(new DrmFeedbackJob(DrmFeedbackJob.TYPE_WEBINI_COUNT, mUri));
+        }
+        if (status && uriToRemove != null) {
+            new File(uriToRemove.getPath()).delete();
         }
         return status;
     }
