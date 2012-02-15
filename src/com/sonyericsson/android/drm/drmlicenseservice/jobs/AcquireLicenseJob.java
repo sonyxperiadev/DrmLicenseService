@@ -260,16 +260,18 @@ public class AcquireLicenseJob extends StackableJob {
      */
     public boolean handleError0x8004c604(ErrorData errorData) {
         String redirectUrl = errorData.getValue("RedirectUrl");
-        if (redirectUrl != null) {
-            if (mJobManager.getCallbackHandler() == null) {
+        if (mJobManager.getCallbackHandler() == null) {
+            if (redirectUrl != null) {
                 // Not called via AIDL, open redirectUrl in browser
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(redirectUrl));
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 mJobManager.getContext().startActivity(intent);
-            } else {
-                mJobManager.addParameter("HTTP_ERROR", 500);
+            }
+        } else {
+            mJobManager.addParameter("HTTP_ERROR", 500);
+            mJobManager.addParameter("INNER_HTTP_ERROR", 0x8004c604);
+            if (redirectUrl != null) {
                 mJobManager.addParameter("REDIRECT_URL", redirectUrl);
-                mJobManager.addParameter("INNER_HTTP_ERROR", 0x8004c604);
             }
         }
         return false;

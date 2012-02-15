@@ -31,6 +31,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 
 public class LaunchLuiUrlIfFailureJob extends StackableJob {
     private String mLuiUrl = null;
@@ -54,9 +55,10 @@ public class LaunchLuiUrlIfFailureJob extends StackableJob {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mJobManager.getContext().startActivity(intent);
         } else {
-            if (mJobManager.getParameters().containsKey("REDIRECT_URL")
-                    || (mJobManager.getParameters().containsKey("HTTP_ERROR") && mJobManager
-                            .getParameters().getInt("HTTP_ERROR") == -5)) {
+            Bundle parameters = mJobManager.getParameters();
+            if (parameters != null && (parameters.containsKey("REDIRECT_URL")
+                    || (parameters.containsKey("HTTP_ERROR") &&
+                            parameters.getInt("HTTP_ERROR") == -5))) {
                 // Do nothing, let DrmFeedbackJob handle it when we either have RedirectURL
                 // already or if HTTP_ERROR == -5 (XML parsing failed)
             } else {
