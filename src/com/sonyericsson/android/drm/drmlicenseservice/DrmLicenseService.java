@@ -128,11 +128,11 @@ public class DrmLicenseService extends Service {
     }
 
     private void renewRights(final Intent intent) {
-        Uri fileUri = intent.getData();
+        final Uri fileUri = intent.getData();
         if (fileUri != null && !fileUri.equals(Uri.EMPTY)) {
             final String filePath = fileUri.getEncodedPath();
 
-            Handler jobManagerDoneHandler = new Handler() {
+            final Handler jobManagerDoneHandler = new Handler() {
                 @Override
                 public void handleMessage(Message msg) {
                     if (Constants.DEBUG) {
@@ -150,9 +150,15 @@ public class DrmLicenseService extends Service {
             ServiceUtility.sendOnInfoResult(
                     this, DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, filePath);
 
-            JobManager jm = new JobManager(this, jobManagerDoneHandler, 0, jobDb);
-            jm.pushJob(new RenewRightsJob(fileUri));
-            jm.start();
+            final Context fContext = this;
+            new Thread() {
+                public void run() {
+                    super.run();
+                    JobManager jm = new JobManager(fContext, jobManagerDoneHandler, 0, jobDb);
+                    jm.pushJob(new RenewRightsJob(fileUri));
+                    jm.start();
+                }
+            }.start();
         } else {
             // Log.e(Constants.LOGTAG,
             // "Empty URI (no file), can't renew rights");
@@ -161,9 +167,9 @@ public class DrmLicenseService extends Service {
     }
 
     private void handleWebInitiator(final Intent intent) {
-        Uri uri = intent.getData();
+        final Uri uri = intent.getData();
         String mime = intent.getType();
-        Handler jobManagerDoneHandler = new Handler() {
+        final Handler jobManagerDoneHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 //Log.d(Constants.LOGTAG,
@@ -176,9 +182,15 @@ public class DrmLicenseService extends Service {
         // Log.d(Constants.LOGTAG, "HandleWebInitiator: mime " + mime);
         if (mime != null && mime.equals("application/vnd.ms-playready.initiator+xml")) {
             if (uri != null && uri.getScheme() != null) {
-                JobManager jm = new JobManager(this, jobManagerDoneHandler, 0, jobDb);
-                jm.pushJob(new WebInitiatorJob(uri));
-                jm.start();
+                final Context fContext = this;
+                new Thread() {
+                    public void run() {
+                        super.run();
+                        JobManager jm = new JobManager(fContext, jobManagerDoneHandler, 0, jobDb);
+                        jm.pushJob(new WebInitiatorJob(uri));
+                        jm.start();
+                    }
+                }.start();
             } else {
                 // Log.d(Constants.LOGTAG,
                 // "Uri is null or incorrect. Should not happen. "
