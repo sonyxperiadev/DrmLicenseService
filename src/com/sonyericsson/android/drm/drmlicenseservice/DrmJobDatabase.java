@@ -16,6 +16,7 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
  * Sony Ericsson Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
@@ -43,6 +44,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -144,17 +147,26 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
 
     }
 
-    public int addDatabaseJobsToStack(JobManager jm, Long sessionId) {
+    public int addDatabaseJobsToStack(JobManager jm, Long sessionId, Handler statusHandler) {
         int addedJobs = 0;
         Cursor c = null;
+        boolean statusSent = false;
         try {
             lock.lock();
             c = getDatabaseContents();
+
             if (c != null) {
                 c.moveToFirst();
                 while (!c.isAfterLast()) {
-                    long jobSsessionId = c.getLong(DatabaseConstants.COLUMN_POS_SESSION_ID);
-                    if (jobSsessionId == sessionId) {
+                    long jobSessionId = c.getLong(DatabaseConstants.COLUMN_POS_SESSION_ID);
+                    if (jobSessionId == sessionId) {
+                        if (!statusSent && statusHandler != null) {
+                            Message msg = new Message();
+                            msg.obj = Boolean.TRUE;
+                            statusHandler.sendMessage(msg);
+                            statusSent = true;
+                        }
+
                         StackableJob job = converttoStackableJob(c);
                         if (job != null) {
                             job.setDatabaseId(c.getLong(DatabaseConstants.COLUMN_POS_ID));
@@ -177,6 +189,11 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
             if (c != null) {
                 c.close();
             }
+        }
+        if (!statusSent && statusHandler != null) {
+            Message msg = new Message();
+            msg.obj = Boolean.FALSE;
+            statusHandler.sendMessage(msg);
         }
         return addedJobs;
     }

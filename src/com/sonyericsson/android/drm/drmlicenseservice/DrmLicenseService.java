@@ -16,6 +16,7 @@
  * The Initial Developer of the Original Code is
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
  * Sony Ericsson Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
@@ -39,6 +40,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
@@ -172,8 +174,10 @@ public class DrmLicenseService extends Service {
         final Handler jobManagerDoneHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-                //Log.d(Constants.LOGTAG,
-                //        "JobManager is done! Result was: " + msg.obj.toString());
+                if (Constants.DEBUG) {
+                    Log.d(Constants.LOGTAG,
+                            "JobManager is done! Result was: " + msg.obj.toString());
+                }
             }
         };
 
@@ -257,24 +261,50 @@ public class DrmLicenseService extends Service {
             return jm.getSessionId();
         }
 
-        public void setCallbackListener(
-                IDrmLicenseServiceCallback callbackHandler, long sessionId, Bundle parameters)
+        public boolean setCallbackListener(
+                IDrmLicenseServiceCallback callbackHandler, final long sessionId, Bundle parameters)
                 throws RemoteException {
-
-            JobManager jm = new JobManager(mContext, null, parameters, callbackHandler, 0, jobDb);
-            jm.mSessionId = sessionId;
-            synchronized (mJobs) {
-                mJobs.put(Long.valueOf(jm.getSessionId()), jm);
-            }
-            jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
-                @Override
-                void isDone(long sessionId) {
-                    synchronized (mJobs) {
-                        mJobs.remove(sessionId);
+            boolean isOk = false;
+            if (callbackHandler != null && sessionId != 0) {
+                final JobManager jm = new JobManager(mContext, null, parameters, callbackHandler, 0,
+                        jobDb);
+                jm.mSessionId = sessionId;
+                jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
+                    @Override
+                    void isDone(long sessionId) {
+                        synchronized (mJobs) {
+                            mJobs.remove(sessionId);
+                        }
                     }
+                });
+
+                Looper.prepare();
+
+                class StatusHandler extends Handler {
+                    public boolean jobAreBeingAdded = false;
                 }
-            });
-            readInStoredJobs(jm, sessionId);
+
+                final StatusHandler statusHandler = new StatusHandler() {
+                    @Override
+                    public void handleMessage(Message msg) {
+                        jobAreBeingAdded = Boolean.parseBoolean(msg.obj.toString());
+                        getLooper().quit();
+                    }
+                };
+                new Thread () {
+                    public void run() {
+                        if (readInStoredJobs(jm, sessionId, statusHandler)) {
+                            synchronized (mJobs) {
+                                mJobs.put(Long.valueOf(jm.getSessionId()), jm);
+                            }
+                            jm.start();
+                        }
+                    }
+                }.start();
+                Looper.loop();
+                isOk = statusHandler.jobAreBeingAdded;
+            }
+            return isOk;
         }
 
         public boolean cancelSession(long sessionId) throws RemoteException {
@@ -291,19 +321,16 @@ public class DrmLicenseService extends Service {
 
     };
 
-    private void readInStoredJobs(final JobManager jm, final long sessionId) {
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                if (jm != null) {
-                    if (jobDb.addDatabaseJobsToStack(jm, sessionId) > 0 ) {
-                        Log.d(Constants.LOGTAG,
-                                "Starting to work on the non-finished tasks found in database");
-                        jm.start();
-                    }
-                }
+    private boolean readInStoredJobs(final JobManager jm, final long sessionId,
+            Handler statusHandler) {
+        boolean jobsAdded = false;
+        if (jm != null) {
+            if (jobDb.addDatabaseJobsToStack(jm, sessionId, statusHandler) > 0 ) {
+                Log.d(Constants.LOGTAG,
+                "Starting to work on the non-finished tasks found in database");
+                jobsAdded = true;
             }
-        };
-        thread.start();
+        }
+        return jobsAdded;
     }
 }

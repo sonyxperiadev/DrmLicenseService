@@ -16,6 +16,7 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
 * Sony Ericsson Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
@@ -89,10 +90,11 @@ long renewRights(in Uri filePath, in Bundle parameters, IDrmLicenseServiceCallba
  * @param[in] callbackHandler The implementation of the callback interface provided by the client.
  * @param[in] parameters A map containing additional parameters,
  *                       see handleWebInitiator() for details.
+ * @return               Status. If sessionId was found and callbackHandler was successfully set.
  */
-void setCallbackListener(IDrmLicenseServiceCallback callbackHandler,
-                         long sessionId,
-                         in Bundle parameters);
+boolean setCallbackListener(IDrmLicenseServiceCallback callbackHandler,
+                            long sessionId,
+                            in Bundle parameters);
 
 /**
  * Cancel an ongoing session.
