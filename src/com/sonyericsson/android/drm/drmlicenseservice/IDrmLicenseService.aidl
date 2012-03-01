@@ -16,8 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
+* Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
