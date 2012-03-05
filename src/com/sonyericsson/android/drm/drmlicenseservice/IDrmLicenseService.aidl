@@ -47,7 +47,7 @@ interface IDrmLicenseService {
  *                           "HTTP_HEADERS" // A Bundle of headers where key+value is used in
  *                                          // in the http request
  *                           "REDIRECT_LIMIT" // Max number of http redirects to follow (def. 20)
- *                           "TIME_OUT",    // Connection timeout (in seconds), default is 30
+ *                           "TIME_OUT",    // Connection timeout (in seconds), default is 60
  *                           "RETRY_COUNT", // Http request retries, default is 5
  *                           "CUSTOM_DATA", "OperatorService"  // Will replace cd from WebInitiator
  *                           "CUSTOM_DATA_PREFIX", "Operator " // Will be added before cd from WI
@@ -70,7 +70,7 @@ long handleWebInitiator(in Uri uri,
  *                           "HTTP_HEADERS" // A Bundle of headers where key+value is used in
  *                                          // in the http request
  *                           "REDIRECT_LIMIT" // Max number of http redirects to follow (def. 20)
- *                           "TIME_OUT",    // Connection timeout (in seconds), default is 30
+ *                           "TIME_OUT",    // Connection timeout (in seconds), default is 60
  *                           "RETRY_COUNT", // Http request retries, default is 5
  *                           "CUSTOM_DATA", "OperatorService"  // Will replace cd from WebInitiator
  *                           "CUSTOM_DATA_PREFIX", "Operator " // Will be added before cd from WI

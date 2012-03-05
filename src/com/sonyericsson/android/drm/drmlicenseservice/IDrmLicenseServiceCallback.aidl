@@ -16,7 +16,9 @@
 * The Initial Developer of the Original Code is
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
-* Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Sony Ericsson Mobile Communications AB.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -44,10 +46,8 @@ interface IDrmLicenseServiceCallback {
  *                             5 = Renew rights completed
  * @param[in] status     If the action was considered to be successful.
  * @param[in] parameters A map containing additional parameters, examples:
- *                          state == *all*
- *                             "WEB_INITIATOR", "http://www.somewhere.com/script?param=1"
- *                             "CUSTOM_DATA", "Operator"
  *                          state == *any* (may be used in some states)
+ *                             "CUSTOM_DATA", "Operator"
  *                             "REDIRECT_URL", "http://www.somewhere.com/NextPageToLoad"
  *                             "HTTP_ERROR", Ordinary http error codes or negative value for other
  *                                           -1 Too many retries
@@ -62,12 +62,12 @@ interface IDrmLicenseServiceCallback {
  *                                           is negative
  *                          state == 1
  *                             "GROUP_COUNT", * (int, total number of items in WebInitiator)
+ *                             "WEB_INITIATOR", "http://www.somewhere.com/script?param=1"
  *                          state == 2
  *                             "GROUP_COUNT", * (int, total number of items in WebInitiator)
  *                             "GROUP_NUMBER", * (int, sequence number within WebInitiator)
  *                             "CONTENT_URL", "http://www.anywhere.com/content.file"
  *                             "TYPE", "AcquireLicense"/"JoinDomain"/"LeaveDomain"/"Metering"
- *                             "CUSTOM_DATA", "Prefix Operator Suffix"
  *                          state == 5
  *                             "FILEPATH", "/sdcard/music/file.isma"
  * @return               Status of callback execution. Optional for service to consider.
