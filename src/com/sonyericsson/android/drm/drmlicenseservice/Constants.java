@@ -163,6 +163,8 @@ public class Constants {
 
     public static final String DRM_KEYPARAM_INNER_HTTP_ERROR = "INNER_HTTP_ERROR";
 
+    public static final String DRM_KEYPARAM_URL = "URL";
+
     public static final int PROGRESS_TYPE_WEBINI_COUNT = 1;
 
     public static final int PROGRESS_TYPE_FINISHED_JOB = 2;
@@ -173,6 +175,5 @@ public class Constants {
 
     public static final int PROGRESS_TYPE_RENEW_RIGHTS = 5;
 
-    public static final int PROGRESS_TYPE_CONTENT_DOWNLOADED = 6;
-
+    public static final int PROGRESS_TYPE_HTTP_RETRYING = 6;
 }

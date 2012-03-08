@@ -30,15 +30,19 @@ import com.sonyericsson.android.drm.drmlicenseservice.Constants;
 import com.sonyericsson.android.drm.drmlicenseservice.CustomDataParser;
 import com.sonyericsson.android.drm.drmlicenseservice.ErrorMessageParser;
 import com.sonyericsson.android.drm.drmlicenseservice.HttpClient;
+import com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseServiceCallback;
 import com.sonyericsson.android.drm.drmlicenseservice.JobManager;
 import com.sonyericsson.android.drm.drmlicenseservice.DrmJobDatabase;
 import com.sonyericsson.android.drm.drmlicenseservice.ErrorMessageParser.ErrorData;
 import com.sonyericsson.android.drm.drmlicenseservice.HttpClient.Response;
+import com.sonyericsson.android.drm.drmlicenseservice.HttpClient.RetryCallback;
 
 import android.database.Cursor;
 import android.drm.DrmInfo;
 import android.drm.DrmInfoRequest;
 import android.drm.DrmManagerClient;
+import android.os.Bundle;
+import android.os.RemoteException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -49,6 +53,25 @@ public abstract class StackableJob {
     private int mGroupId = 0;
 
     private long mDatabaseId = -1;
+
+    protected RetryCallback mRetryCallback = new RetryCallback() {
+        public boolean retryingUrl(int httpError, String url) {
+            IDrmLicenseServiceCallback callback = mJobManager.getCallbackHandler();
+            if (callback != null) {
+                Bundle parameters = new Bundle();
+                parameters.putString(Constants.DRM_KEYPARAM_URL, url);
+                if (httpError != 0) {
+                    parameters.putInt(Constants.DRM_KEYPARAM_HTTP_ERROR, httpError);
+                }
+                try {
+                    callback.onProgressReport(mJobManager.getSessionId(),
+                            Constants.PROGRESS_TYPE_HTTP_RETRYING, true, parameters);
+                } catch (RemoteException e) {
+                }
+            }
+            return true;
+        }
+    };
 
     public void setJobManager(JobManager jobManager) {
         mJobManager = jobManager;
@@ -116,7 +139,7 @@ public abstract class StackableJob {
             return false;
         }
         HttpClient.Response response = HttpClient.post(mJobManager.getSessionId(), url, getType(),
-                data, mJobManager.getParameters());
+                data, mJobManager.getParameters(), mRetryCallback);
         return handleResponse(response);
     }
 

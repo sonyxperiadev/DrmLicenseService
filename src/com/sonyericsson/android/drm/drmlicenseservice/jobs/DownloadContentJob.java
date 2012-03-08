@@ -276,10 +276,6 @@ public class DownloadContentJob extends StackableJob {
      * Send status report and clean up
      */
     private void finishDownload(String filePath, String downloadStatus) {
-        // TODO re-add download to notification bar!
-        mJobManager.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_CONTENT_DOWNLOADED,
-                filePath));
-
         if (downloadStatus.equals("SUCCESS") && filePath != null) {
             Uri filePathUri = Uri.parse(filePath);
             MediaScannerConnection.scanFile(mJobManager.getContext(), new String[] {

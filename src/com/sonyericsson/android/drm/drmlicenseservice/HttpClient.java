@@ -65,6 +65,15 @@ public class HttpClient {
         public boolean handleData(byte[] buffer, int length);
     }
 
+    // Optional interface to implement by clients, if they need information
+    // about when http requests are retried
+    public interface RetryCallback {
+        // Provides additional feedback to the client when a http retry
+        // is made. In this way it will be possible for client application
+        // to provide better feedback to the end user.
+        public boolean retryingUrl(int httpError, String url);
+    }
+
     public static class Response {
         private int mStatus = 0;
 
@@ -146,6 +155,8 @@ public class HttpClient {
 
         private boolean keepRunning = true;
 
+        private RetryCallback mRetryCallback;
+
         public void prepareCancel() {
             keepRunning = false;
         }
@@ -154,10 +165,11 @@ public class HttpClient {
             return keepRunning;
         }
 
-        public HttpThread(Bundle parameters, HttpThreadAction action) {
+        public HttpThread(Bundle parameters, HttpThreadAction action, RetryCallback retryCallback) {
             super();
             this.mParameters = parameters;
             this.mAction = action;
+            this.mRetryCallback = retryCallback;
             if (parameters != null) {
                 if (parameters.containsKey(Constants.DRM_KEYPARAM_RETRY_COUNT)) {
                     int value = parameters.getInt(Constants.DRM_KEYPARAM_RETRY_COUNT);
@@ -217,6 +229,9 @@ public class HttpClient {
                 } else {
                     if (newUri != null) {
                         request.setURI(newUri);
+                    }
+                    if (retryNumber > 0 && mRetryCallback != null) {
+                        mRetryCallback.retryingUrl(statusCode, request.getURI().toString());
                     }
                     try {
                         httpResponse = client.execute(request);
@@ -379,7 +394,7 @@ public class HttpClient {
     }
 
     private static Response runAsThread(long sessionId, Bundle parameters,
-            HttpThread.HttpThreadAction action) {
+            RetryCallback retryCallback, HttpThread.HttpThreadAction action) {
         int retryCount = 5;
         int timeOut = 60;
         if (parameters != null) {
@@ -396,7 +411,7 @@ public class HttpClient {
                 }
             }
         }
-        HttpThread t = new HttpThread(parameters, action);
+        HttpThread t = new HttpThread(parameters, action, retryCallback);
 
         synchronized (mIdMap) {
             mIdMap.put(sessionId, t);
@@ -422,23 +437,25 @@ public class HttpClient {
     private HttpClient() {
     }
 
-    public static Response post(long sessionId, String url, String messageType, String data) {
-        return post(sessionId, url, messageType, data, null, null);
+    public static Response post(long sessionId, String url, String messageType, String data,
+            RetryCallback retryCallback) {
+        return post(sessionId, url, messageType, data, null, null, retryCallback);
     }
 
     public static Response post(long sessionId, String url, String messageType, String data,
-            Bundle parameters) {
-        return post(sessionId, url, messageType, data, parameters, null);
+            Bundle parameters, RetryCallback retryCallback) {
+        return post(sessionId, url, messageType, data, parameters, null, retryCallback);
     }
 
     public static Response post(long sessionId, String url, String messageType, String data,
-            Bundle parameters, DataHandlerCallback callback) {
+            Bundle parameters, DataHandlerCallback callback, RetryCallback retryCallback) {
         Response response = null;
         final String fUrl = url;
         final String fMessageType = messageType;
         final String fData = data;
         final Bundle fParameters = parameters;
-        response = runAsThread(sessionId, parameters, new HttpThread.HttpThreadAction(callback) {
+        response = runAsThread(sessionId, parameters, retryCallback,
+                new HttpThread.HttpThreadAction(callback) {
             public HttpRequestBase getRequest() {
                 HttpPost request = null;
                 if (fUrl != null && fUrl.length() > 0) {
@@ -470,20 +487,22 @@ public class HttpClient {
         return response;
     }
 
-    public static Response get(long sessionId, String url) {
-        return get(sessionId, url, null, null);
-    }
-
-    public static Response get(long sessionId, String url, Bundle parameters) {
-        return get(sessionId, url, parameters, null);
+    public static Response get(long sessionId, String url, RetryCallback retryCallback) {
+        return get(sessionId, url, null, null, retryCallback);
     }
 
     public static Response get(long sessionId, String url, Bundle parameters,
-            DataHandlerCallback callback) {
+            RetryCallback retryCallback) {
+        return get(sessionId, url, parameters, null, retryCallback);
+    }
+
+    public static Response get(long sessionId, String url, Bundle parameters,
+            DataHandlerCallback callback, RetryCallback retryCallback) {
         Response response = null;
         final String fUrl = url;
         final Bundle fParameters = parameters;
-        response = runAsThread(sessionId, parameters, new HttpThread.HttpThreadAction(callback) {
+        response = runAsThread(sessionId, parameters, retryCallback,
+                new HttpThread.HttpThreadAction(callback) {
             public HttpRequestBase getRequest() {
                 HttpGet request = null;
                 if (fUrl != null && fUrl.length() > 0) {

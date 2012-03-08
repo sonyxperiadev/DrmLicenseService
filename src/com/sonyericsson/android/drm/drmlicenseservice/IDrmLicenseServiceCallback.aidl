@@ -44,6 +44,7 @@ interface IDrmLicenseServiceCallback {
  *                             3 = Finished Web Initiator
  *                             4 = Canceled
  *                             5 = Renew rights completed
+ *                             6 = Http request problem, will now retry
  * @param[in] status     If the action was considered to be successful.
  * @param[in] parameters A map containing additional parameters, examples:
  *                          state == *any* (may be used in some states)
@@ -70,6 +71,8 @@ interface IDrmLicenseServiceCallback {
  *                             "TYPE", "AcquireLicense"/"JoinDomain"/"LeaveDomain"/"Metering"
  *                          state == 5
  *                             "FILEPATH", "/sdcard/music/file.isma"
+ *                          state == 6
+ *                             "URL", "http://some.server/some/path"
  * @return               Status of callback execution. Optional for service to consider.
  */
 boolean onProgressReport(long sessionId, int state, boolean status, in Bundle parameters);
