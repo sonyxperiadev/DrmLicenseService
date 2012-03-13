@@ -93,6 +93,7 @@ public class JoinDomainJob extends StackableJob {
             }
             if (mServiceId == Constants.ALL_ZEROS_DRM_ID
                     && mAccountId == Constants.ALL_ZEROS_DRM_ID) {
+                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -4);
                 isOK = false;
                 break;
             }
