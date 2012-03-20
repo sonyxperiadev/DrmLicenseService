@@ -328,7 +328,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
             lock.unlock();
         }
         if (Constants.DEBUG) {
-            Log.e(TAG, "insert: returning " + result);
+            Log.d(TAG, "insert: returning " + result);
         }
         return result;
     }
@@ -346,7 +346,7 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
             lock.unlock();
         }
         if (Constants.DEBUG) {
-            Log.e(TAG, "insert: returning " + result);
+            Log.d(TAG, "insert: returning " + result);
         }
         return result;
     }

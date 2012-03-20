@@ -55,13 +55,16 @@ public abstract class StackableJob {
     private long mDatabaseId = -1;
 
     protected RetryCallback mRetryCallback = new RetryCallback() {
-        public boolean retryingUrl(int httpError, String url) {
+        public boolean retryingUrl(int httpError, int innerHttpError, String url) {
             IDrmLicenseServiceCallback callback = mJobManager.getCallbackHandler();
             if (callback != null) {
                 Bundle parameters = new Bundle();
                 parameters.putString(Constants.DRM_KEYPARAM_URL, url);
                 if (httpError != 0) {
                     parameters.putInt(Constants.DRM_KEYPARAM_HTTP_ERROR, httpError);
+                }
+                if (innerHttpError != 0) {
+                    parameters.putInt(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR, innerHttpError);
                 }
                 try {
                     callback.onProgressReport(mJobManager.getSessionId(),

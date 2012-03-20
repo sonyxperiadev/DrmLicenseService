@@ -50,6 +50,8 @@ import android.os.Handler;
 import android.os.Looper;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 public class DownloadContentJob extends StackableJob {
     private String mContentUrl = null;
@@ -101,6 +103,7 @@ public class DownloadContentJob extends StackableJob {
                     }
                     request.setVisibleInDownloadsUi(true);
                     request.setShowRunningNotification(true);
+                    request.setDescription(uri.getHost());
 
                     Bundle headers = mJobManager.getBundleParameter(
                             Constants.DRM_KEYPARAM_HTTP_HEADERS);
@@ -142,13 +145,23 @@ public class DownloadContentJob extends StackableJob {
             if (!new File(directory, inputFilename).exists()) {
                 filename = inputFilename;
             } else {
-                String name = inputFilename.replaceAll("\\.[^\\.]*", "");
-                String ext = inputFilename.replaceAll(".*\\.", ".");
+                String name = inputFilename;
+                String ext = "";
+                int pointIndex = inputFilename.lastIndexOf(".");
+                if (pointIndex != -1) {
+                    name = inputFilename.substring(0, pointIndex);
+                    ext = inputFilename.substring(pointIndex, inputFilename.length());
+                }
+
                 long count = 0;
                 do {
                     count--;
                     filename = name + count + ext;
                 } while (new File(directory, filename).exists());
+            }
+            try {
+                filename = URLEncoder.encode(filename, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
             }
         }
         return filename;
@@ -167,8 +180,6 @@ public class DownloadContentJob extends StackableJob {
                 if (mCursor.moveToFirst()) {
                     int statusIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
                     int statusCode = mCursor.getInt(statusIndex);
-                    int localUriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-                    mDownloadFilePath = mCursor.getString(localUriIndex);
 
                     if (statusCode == DownloadManager.STATUS_SUCCESSFUL) {
                         endStatus = "SUCCESS";
@@ -180,8 +191,9 @@ public class DownloadContentJob extends StackableJob {
 
                         // Get mimetype of downloaded content
                         int uriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-                        String path = mCursor.getString(uriIndex);
+                        String path = Uri.decode(mCursor.getString(uriIndex));
                         path = path.replace("file://", "");
+                        mDownloadFilePath = path;
                         DrmManagerClient drm = new DrmManagerClient(context);
                         String mimeType = drm.getOriginalMimeType(path);
 
@@ -211,8 +223,12 @@ public class DownloadContentJob extends StackableJob {
                         Context context = mJobManager.getContext();
 
                         // Get filename of downloaded content
-                        int uriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_URI);
-                        String uri = mCursor.getString(uriIndex);
+                        int titleIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_TITLE);
+                        String title = mCursor.getString(titleIndex);
+                        if (title == null || title.equals("")) {
+                            int uriIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_URI);
+                            title = mCursor.getString(uriIndex);
+                        }
 
                         // Create an Intent that will be issued when user
                         // taps a notification of download result.
@@ -226,7 +242,7 @@ public class DownloadContentJob extends StackableJob {
                         Notification notification = new Notification(
                                 android.R.drawable.stat_sys_download_done, null,
                                 System.currentTimeMillis());
-                        notification.setLatestEventInfo(context, uri, sentence, contentIntent);
+                        notification.setLatestEventInfo(context, title, sentence, contentIntent);
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
                         nManager.notify((int)mDownloadId, notification);

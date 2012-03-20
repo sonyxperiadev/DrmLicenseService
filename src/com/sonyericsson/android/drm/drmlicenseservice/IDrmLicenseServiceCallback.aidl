@@ -73,6 +73,8 @@ interface IDrmLicenseServiceCallback {
  *                             "FILEPATH", "/sdcard/music/file.isma"
  *                          state == 6
  *                             "URL", "http://some.server/some/path"
+ *                             It is also most likely that HTTP_ERROR (and maybe also
+ *                             INNER_HTTP_ERROR) is added according to description above.
  * @return               Status of callback execution. Optional for service to consider.
  */
 boolean onProgressReport(long sessionId, int state, boolean status, in Bundle parameters);

@@ -71,7 +71,7 @@ public class HttpClient {
         // Provides additional feedback to the client when a http retry
         // is made. In this way it will be possible for client application
         // to provide better feedback to the end user.
-        public boolean retryingUrl(int httpError, String url);
+        public boolean retryingUrl(int httpError, int innerHttpError, String url);
     }
 
     public static class Response {
@@ -231,7 +231,8 @@ public class HttpClient {
                         request.setURI(newUri);
                     }
                     if (retryNumber > 0 && mRetryCallback != null) {
-                        mRetryCallback.retryingUrl(statusCode, request.getURI().toString());
+                        mRetryCallback.retryingUrl(statusCode, innerStatusCode, request.getURI().
+                                toString());
                     }
                     try {
                         httpResponse = client.execute(request);
