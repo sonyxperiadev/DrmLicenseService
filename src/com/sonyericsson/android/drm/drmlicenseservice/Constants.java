@@ -37,6 +37,9 @@ public class Constants {
     /** Debug flag */
     public static final boolean DEBUG = false;
 
+    /** User Agent to use if no UA is provided nor possible to get from system **/
+    public static final String FALLBACK_USER_AGENT = "DrmLicenseService";
+
     /** Intent action that starts service renewal flow */
     public static final String INTENT_ACTION_DRM_SERVICE_RENEW =
             "com.sonyericsson.intent.action.RENEW_LICENSE";

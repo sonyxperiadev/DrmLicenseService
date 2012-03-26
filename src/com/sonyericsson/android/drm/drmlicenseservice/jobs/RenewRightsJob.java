@@ -127,8 +127,9 @@ public class RenewRightsJob extends StackableJob {
                         return true;
                     }
                 };
-                HttpClient.Response response = HttpClient.get(mJobManager.getSessionId(),
-                        mFileUri.toString(), mJobManager.getParameters(), callback, mRetryCallback);
+                HttpClient.Response response = HttpClient.get(mJobManager.getContext(),
+                        mJobManager.getSessionId(), mFileUri.toString(),
+                        mJobManager.getParameters(), callback, mRetryCallback);
 
                 if (response == null) {
                     mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -4);

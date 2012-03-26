@@ -35,7 +35,13 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.util.ByteArrayBuffer;
 
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.http.AndroidHttpClient;
+import android.os.Build;
 import android.os.Bundle;
 
 import java.io.BufferedInputStream;
@@ -143,6 +149,8 @@ public class HttpClient {
 
         private int statusCode = 0;
 
+        private Context mContext;
+
         private Bundle mParameters;
 
         private HttpThreadAction mAction;
@@ -165,8 +173,10 @@ public class HttpClient {
             return keepRunning;
         }
 
-        public HttpThread(Bundle parameters, HttpThreadAction action, RetryCallback retryCallback) {
+        public HttpThread(Context context, Bundle parameters, HttpThreadAction action,
+                RetryCallback retryCallback) {
             super();
+            this.mContext = context;
             this.mParameters = parameters;
             this.mAction = action;
             this.mRetryCallback = retryCallback;
@@ -192,8 +202,39 @@ public class HttpClient {
             }
         }
 
+        private String getUserAgent() {
+            String userAgent = Constants.FALLBACK_USER_AGENT;
+            boolean uaFinalized = false;
+
+            if (mParameters != null && mParameters.containsKey(Constants.DRM_KEYPARAM_USER_AGENT)) {
+                String tempUA = mParameters.getString(Constants.DRM_KEYPARAM_USER_AGENT);
+                if (tempUA != null && tempUA.length() > 0) {
+                    userAgent = tempUA;
+                    uaFinalized = true;
+                }
+            }
+
+            if (!uaFinalized) {
+                String versionName = null;
+                CharSequence appName = null;
+                try {
+                    PackageManager packageManager = mContext.getPackageManager();
+                    PackageInfo pInfo = packageManager.getPackageInfo(mContext.getPackageName(), 0);
+                    versionName = pInfo.versionName;
+                    ApplicationInfo applicationInfo = pInfo.applicationInfo;
+                    appName = packageManager.getApplicationLabel(applicationInfo);
+                } catch (NameNotFoundException e) {
+                }
+                if (versionName != null && appName != null) {
+                    userAgent = appName + "/" + versionName + " (" + Build.VERSION.RELEASE + ")";
+                }
+            }
+
+            return userAgent;
+        }
+
         public void run() {
-            String userAgent = getUserAgent(mParameters);
+            String userAgent = getUserAgent();
             AndroidHttpClient client = AndroidHttpClient.newInstance(userAgent);
             HttpConnectionParams.setConnectionTimeout(client.getParams(), timeout * 1000);
             HttpConnectionParams.setSoTimeout(client.getParams(), timeout * 1000);
@@ -394,7 +435,7 @@ public class HttpClient {
         }
     }
 
-    private static Response runAsThread(long sessionId, Bundle parameters,
+    private static Response runAsThread(Context context, long sessionId, Bundle parameters,
             RetryCallback retryCallback, HttpThread.HttpThreadAction action) {
         int retryCount = 5;
         int timeOut = 60;
@@ -412,7 +453,7 @@ public class HttpClient {
                 }
             }
         }
-        HttpThread t = new HttpThread(parameters, action, retryCallback);
+        HttpThread t = new HttpThread(context, parameters, action, retryCallback);
 
         synchronized (mIdMap) {
             mIdMap.put(sessionId, t);
@@ -438,86 +479,88 @@ public class HttpClient {
     private HttpClient() {
     }
 
-    public static Response post(long sessionId, String url, String messageType, String data,
+    public static Response post(Context context, long sessionId, String url, String messageType,
+            String data, RetryCallback retryCallback) {
+        return post(context, sessionId, url, messageType, data, null, null, retryCallback);
+    }
+
+    public static Response post(Context context, long sessionId, String url, String messageType,
+            String data, Bundle parameters, RetryCallback retryCallback) {
+        return post(context, sessionId, url, messageType, data, parameters, null, retryCallback);
+    }
+
+    public static Response post(Context context, long sessionId, String url, String messageType,
+            String data, Bundle parameters, DataHandlerCallback callback,
             RetryCallback retryCallback) {
-        return post(sessionId, url, messageType, data, null, null, retryCallback);
-    }
-
-    public static Response post(long sessionId, String url, String messageType, String data,
-            Bundle parameters, RetryCallback retryCallback) {
-        return post(sessionId, url, messageType, data, parameters, null, retryCallback);
-    }
-
-    public static Response post(long sessionId, String url, String messageType, String data,
-            Bundle parameters, DataHandlerCallback callback, RetryCallback retryCallback) {
         Response response = null;
         final String fUrl = url;
         final String fMessageType = messageType;
         final String fData = data;
         final Bundle fParameters = parameters;
-        response = runAsThread(sessionId, parameters, retryCallback,
+        response = runAsThread(context, sessionId, parameters, retryCallback,
                 new HttpThread.HttpThreadAction(callback) {
-            public HttpRequestBase getRequest() {
-                HttpPost request = null;
-                if (fUrl != null && fUrl.length() > 0) {
-                    try {
-                        request = new HttpPost(fUrl);
-                    } catch (IllegalArgumentException e) {
-                        return null;
-                    }
-                    request.setHeader("Content-Type", "text/xml; charset=utf-8");
-                    addParameters(fParameters, request);
-                    if (fMessageType != null && fMessageType.length() > 0) {
-                        request.setHeader("SOAPAction",
-                                "\"http://schemas.microsoft.com/DRM/2007/03/protocols/"
-                                        + fMessageType + "\"");
-                    }
-                    if (fData != null && fData.length() > 0) {
-                        ByteArrayBuffer bab = new ByteArrayBuffer(fData.length());
-                        bab.append(fData.getBytes(), 0, fData.length());
-                        writeDataToFile("post", bab);
-                        try {
-                            request.setEntity(new StringEntity(fData));
-                        } catch (UnsupportedEncodingException e) {
+                    public HttpRequestBase getRequest() {
+                        HttpPost request = null;
+                        if (fUrl != null && fUrl.length() > 0) {
+                            try {
+                                request = new HttpPost(fUrl);
+                            } catch (IllegalArgumentException e) {
+                                return null;
+                            }
+                            request.setHeader("Content-Type", "text/xml; charset=utf-8");
+                            addParameters(fParameters, request);
+                            if (fMessageType != null && fMessageType.length() > 0) {
+                                request.setHeader("SOAPAction",
+                                        "\"http://schemas.microsoft.com/DRM/2007/03/protocols/"
+                                                + fMessageType + "\"");
+                            }
+                            if (fData != null && fData.length() > 0) {
+                                ByteArrayBuffer bab = new ByteArrayBuffer(fData.length());
+                                bab.append(fData.getBytes(), 0, fData.length());
+                                writeDataToFile("post", bab);
+                                try {
+                                    request.setEntity(new StringEntity(fData));
+                                } catch (UnsupportedEncodingException e) {
+                                }
+                            }
                         }
+                        return request;
                     }
-                }
-                return request;
-            }
-        });
+                });
         return response;
     }
 
-    public static Response get(long sessionId, String url, RetryCallback retryCallback) {
-        return get(sessionId, url, null, null, retryCallback);
-    }
-
-    public static Response get(long sessionId, String url, Bundle parameters,
+    public static Response get(Context context, long sessionId, String url,
             RetryCallback retryCallback) {
-        return get(sessionId, url, parameters, null, retryCallback);
+        return get(context, sessionId, url, null, null, retryCallback);
     }
 
-    public static Response get(long sessionId, String url, Bundle parameters,
+    public static Response get(Context context, long sessionId, String url, Bundle parameters,
+            RetryCallback retryCallback) {
+        return get(context, sessionId, url, parameters, null, retryCallback);
+    }
+
+    public static Response get(Context context, long sessionId, String url, Bundle parameters,
             DataHandlerCallback callback, RetryCallback retryCallback) {
         Response response = null;
         final String fUrl = url;
         final Bundle fParameters = parameters;
-        response = runAsThread(sessionId, parameters, retryCallback,
+        response = runAsThread(context, sessionId, parameters, retryCallback,
                 new HttpThread.HttpThreadAction(callback) {
-            public HttpRequestBase getRequest() {
-                HttpGet request = null;
-                if (fUrl != null && fUrl.length() > 0) {
-                    try {
-                        request = new HttpGet(fUrl);
-                    } catch (IllegalArgumentException e) {
-                        return null;
-                    }
+                    public HttpRequestBase getRequest() {
+                        HttpGet request = null;
+                        if (fUrl != null && fUrl.length() > 0) {
+                            try {
+                                request = new HttpGet(fUrl);
+                            } catch (IllegalArgumentException e) {
+                                return null;
+                            }
 
-                    addParameters(fParameters, request);
-                }
-                return request;
-            }
-        });
+                            addParameters(fParameters, request);
+                        }
+                        return request;
+                    }
+                });
         return response;
     }
 
@@ -537,17 +580,6 @@ public class HttpClient {
                 }
             }
         }
-    }
-
-    private static String getUserAgent(Bundle parameters) {
-        String userAgent = "PlayReadyApp";
-        if (parameters != null && parameters.containsKey(Constants.DRM_KEYPARAM_USER_AGENT)) {
-            String tempUA = parameters.getString(Constants.DRM_KEYPARAM_USER_AGENT);
-            if (tempUA != null && tempUA.length() > 0) {
-                userAgent = tempUA;
-            }
-        }
-        return userAgent;
     }
 
     private static void writeDataToFile(String suffix, ByteArrayBuffer data) {

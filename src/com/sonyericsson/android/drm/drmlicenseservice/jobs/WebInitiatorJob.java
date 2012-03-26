@@ -78,7 +78,8 @@ public class WebInitiatorJob extends StackableJob {
             try {
                 if ("http".equals(mUri.getScheme()) && ((host = mUri.getHost()) != null)
                         && host.length() > 0) {
-                    Response response = HttpClient.get(mJobManager.getSessionId(), mUri.toString(),
+                    Response response = HttpClient.get(mJobManager.getContext(),
+                            mJobManager.getSessionId(), mUri.toString(),
                             mJobManager.getParameters(), mRetryCallback);
                     if (response != null && response.getStatus() == 200) {
                         respData = response.getData();
@@ -170,12 +171,12 @@ public class WebInitiatorJob extends StackableJob {
                                         && kid.length() > 0) {
                                     if (content != null && content.length() > 0) {
                                         mJobManager.pushJob(new DrmFeedbackJob(
-                                                    Constants.PROGRESS_TYPE_FINISHED_JOB,
+                                                Constants.PROGRESS_TYPE_FINISHED_JOB,
                                                 "AcquireLicense", Uri.parse(content)));
                                         mJobManager.pushJob(new DownloadContentJob(content));
                                     } else {
                                         mJobManager.pushJob(new DrmFeedbackJob(
-                                                    Constants.PROGRESS_TYPE_FINISHED_JOB,
+                                                Constants.PROGRESS_TYPE_FINISHED_JOB,
                                                 "AcquireLicense"));
                                     }
                                     if (luiUrl != null) {
@@ -194,7 +195,7 @@ public class WebInitiatorJob extends StackableJob {
                                 }
                             } else if (type.equals("JoinDomain")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                            Constants.PROGRESS_TYPE_FINISHED_JOB, "JoinDomain"));
+                                        Constants.PROGRESS_TYPE_FINISHED_JOB, "JoinDomain"));
                                 mJobManager.pushJob(new JoinDomainJob(data
                                         .get("JoinDomain.DomainController"), data
                                         .get("JoinDomain.DS_ID"), data
@@ -205,7 +206,7 @@ public class WebInitiatorJob extends StackableJob {
                                 status = true;
                             } else if (type.equals("LeaveDomain")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                            Constants.PROGRESS_TYPE_FINISHED_JOB, "LeaveDomain"));
+                                        Constants.PROGRESS_TYPE_FINISHED_JOB, "LeaveDomain"));
                                 mJobManager.pushJob(new LeaveDomainJob(data
                                         .get("LeaveDomain.DomainController"), data
                                         .get("LeaveDomain.DS_ID"), data
@@ -215,7 +216,7 @@ public class WebInitiatorJob extends StackableJob {
                                 status = true;
                             } else if (type.equals("Metering")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
-                                            Constants.PROGRESS_TYPE_FINISHED_JOB,
+                                        Constants.PROGRESS_TYPE_FINISHED_JOB,
                                         "GetMeteringCertificate"));
                                 mJobManager.pushJob(new ProcessMeteringDataJob(data
                                         .get("Metering.CertificateServer"), data
@@ -234,14 +235,14 @@ public class WebInitiatorJob extends StackableJob {
                             mJobManager.createNewJobGroup();
                         }
                         mJobManager.pushJob(new DrmFeedbackJob(
-                                    Constants.PROGRESS_TYPE_WEBINI_COUNT, mUri));
+                                Constants.PROGRESS_TYPE_WEBINI_COUNT, mUri));
                         if (sendLicReqStartMsg == true && status == true) {
                             ServiceUtility.sendOnInfoResult(mJobManager.getContext(),
                                     DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, mUri.getEncodedPath());
                         }
                     } else {
                         if (mJobManager != null) {
-                                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
+                            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                         }
                     }
                 }

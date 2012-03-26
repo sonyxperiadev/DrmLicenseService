@@ -141,8 +141,9 @@ public abstract class StackableJob {
         if (!mJobManager.getKeepRunning()) {
             return false;
         }
-        HttpClient.Response response = HttpClient.post(mJobManager.getSessionId(), url, getType(),
-                data, mJobManager.getParameters(), mRetryCallback);
+        HttpClient.Response response = HttpClient.post(mJobManager.getContext(),
+                mJobManager.getSessionId(), url, getType(), data, mJobManager.getParameters(),
+                mRetryCallback);
         return handleResponse(response);
     }
 
