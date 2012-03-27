@@ -1,0 +1,29 @@
+The behavior of the WebKit browser in Android ICS has changed compared to GB.
+
+WebKit is now displaying all “*+xml” mimetypes due to the addition of isXMLMIMEType()
+To get the same behavior as in GB you have to modify WebKit (platform/external/webkit/Source/WebKit/android/WebCoreSupport/FrameLoaderClientAndroid.cpp)
+Sony is currently discussing with Google to make this modification in the official Android source code.
+
+bool FrameLoaderClientAndroid::canShowMIMEType(const String& mimeType) const {
+    // FIXME: This looks like it has to do with whether or not a type can be
+    // shown "internally" (i.e. inside the browser) regardless of whether
+    // or not the browser is doing the rendering, e.g. a full page plugin.
+
++    // DrmLicenseService modification start
++    if (mimeType == "application/vnd.ms-playready.initiator+xml")
++        return false;
++    // DrmLicenseService modification end
+
+    if (MIMETypeRegistry::isSupportedImageResourceMIMEType(mimeType) ||
+            MIMETypeRegistry::isSupportedNonImageMIMEType(mimeType) ||
+            MIMETypeRegistry::isSupportedJavaScriptMIMEType(mimeType) ||
+            (m_frame && m_frame->settings()
+                    && m_frame->settings()->arePluginsEnabled()
+                    && PluginDatabase::installedPlugins()->isMIMETypeRegistered(
+                            mimeType)) ||
+            (DOMImplementation::isTextMIMEType(mimeType) &&
+             !mimeType.startsWith("text/vnd")) ||
+            DOMImplementation::isXMLMIMEType(mimeType))
+        return true;
+    return false;
+}
