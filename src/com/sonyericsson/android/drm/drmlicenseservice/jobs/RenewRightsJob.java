@@ -52,6 +52,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Stack;
@@ -128,7 +129,7 @@ public class RenewRightsJob extends StackableJob {
                     }
                 };
                 HttpClient.Response response = HttpClient.get(mJobManager.getContext(),
-                        mJobManager.getSessionId(), mFileUri.toString(),
+                        mJobManager.getSessionId(), Uri.encode(mFileUri.toString(), ":/$,;&=!@%"),
                         mJobManager.getParameters(), callback, mRetryCallback);
 
                 if (response == null) {
@@ -144,7 +145,11 @@ public class RenewRightsJob extends StackableJob {
                 }
             }
         } else if (mFileUri != null && (scheme == null || scheme.equals("file"))) {
-            File file = new File(URLDecoder.decode(mFileUri.getEncodedPath()));
+            File file = null;
+            try {
+                file = new File(URLDecoder.decode(mFileUri.getEncodedPath(), "UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+            }
             if (file != null && file.exists()) {
                 String mime = Constants.DRM_DLS_PIFF_MIME;
                 if (file.toString().endsWith(".pyv") || file.toString().endsWith(".pya")) {

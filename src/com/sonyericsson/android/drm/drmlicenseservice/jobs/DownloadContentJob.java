@@ -32,6 +32,7 @@ import com.sonyericsson.android.drm.drmlicenseservice.R;
 import com.sonyericsson.android.drm.drmlicenseservice.Constants;
 
 import android.app.DownloadManager;
+import android.app.DownloadManager.Request;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -102,7 +103,7 @@ public class DownloadContentJob extends StackableJob {
                         return false;
                     }
                     request.setVisibleInDownloadsUi(true);
-                    request.setShowRunningNotification(true);
+                    request.setNotificationVisibility(Request.VISIBILITY_VISIBLE);
                     request.setDescription(uri.getHost());
 
                     Bundle headers = mJobManager.getBundleParameter(
@@ -176,7 +177,13 @@ public class DownloadContentJob extends StackableJob {
         public void onChange(boolean selfChange) {
             String endStatus = null;
             if (mCursor != null) {
-                mCursor.requery();
+                mCursor.unregisterContentObserver(mObserver);
+            }
+            DownloadManager.Query query = new DownloadManager.Query();
+            query.setFilterById(mDownloadId);
+            mCursor = mDwldManager.query(query);
+            if (mCursor != null) {
+                mCursor.registerContentObserver(mObserver);
                 if (mCursor.moveToFirst()) {
                     int statusIndex = mCursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
                     int statusCode = mCursor.getInt(statusIndex);
@@ -207,10 +214,13 @@ public class DownloadContentJob extends StackableJob {
                         // Create and Show notification
                         Resources res = context.getResources();
                         String sentence = res.getString(R.string.status_successful_download);
-                        Notification notification = new Notification(
-                                android.R.drawable.stat_sys_download_done, null,
-                                System.currentTimeMillis());
-                        notification.setLatestEventInfo(context, title, sentence, contentIntent);
+                        Notification notification = new Notification.Builder(context).
+                                setSmallIcon(android.R.drawable.stat_sys_download_done).
+                                setWhen(System.currentTimeMillis()).
+                                setContentTitle(title).
+                                setContentText(sentence).
+                                setFullScreenIntent(contentIntent, false).
+                                getNotification();
                         notification.flags = Notification.FLAG_AUTO_CANCEL;
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
@@ -239,10 +249,13 @@ public class DownloadContentJob extends StackableJob {
                         // Create and Show notification
                         Resources res = context.getResources();
                         String sentence = res.getString(R.string.status_failed_download);
-                        Notification notification = new Notification(
-                                android.R.drawable.stat_sys_download_done, null,
-                                System.currentTimeMillis());
-                        notification.setLatestEventInfo(context, title, sentence, contentIntent);
+                        Notification notification = new Notification.Builder(context).
+                                setSmallIcon(android.R.drawable.stat_sys_download_done).
+                                setWhen(System.currentTimeMillis()).
+                                setContentTitle(title).
+                                setContentText(sentence).
+                                setFullScreenIntent(contentIntent, false).
+                                getNotification();
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
                         nManager.notify((int)mDownloadId, notification);
