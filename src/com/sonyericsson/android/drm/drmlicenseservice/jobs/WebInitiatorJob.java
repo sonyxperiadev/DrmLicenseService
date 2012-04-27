@@ -76,8 +76,8 @@ public class WebInitiatorJob extends StackableJob {
         if (mJobManager != null && mUri != null) {
             String respData = null;
             try {
-                if ("http".equals(mUri.getScheme()) && ((host = mUri.getHost()) != null)
-                        && host.length() > 0) {
+                if (("http".equals(mUri.getScheme()) || "https".equals(mUri.getScheme()))
+                        && ((host = mUri.getHost()) != null) && host.length() > 0) {
                     Response response = HttpClient.get(mJobManager.getContext(),
                             mJobManager.getSessionId(), mUri.toString(),
                             mJobManager.getParameters(), mRetryCallback);
