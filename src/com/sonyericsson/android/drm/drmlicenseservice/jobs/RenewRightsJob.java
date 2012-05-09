@@ -129,7 +129,7 @@ public class RenewRightsJob extends StackableJob {
                     }
                 };
                 HttpClient.Response response = HttpClient.get(mJobManager.getContext(),
-                        mJobManager.getSessionId(), Uri.encode(mFileUri.toString(), ":/$,;&=!@%"),
+                        mJobManager.getSessionId(), mFileUri.toString(),
                         mJobManager.getParameters(), callback, mRetryCallback);
 
                 if (response == null) {

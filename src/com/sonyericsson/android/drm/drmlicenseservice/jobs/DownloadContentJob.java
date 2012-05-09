@@ -219,7 +219,7 @@ public class DownloadContentJob extends StackableJob {
                                 setWhen(System.currentTimeMillis()).
                                 setContentTitle(title).
                                 setContentText(sentence).
-                                setFullScreenIntent(contentIntent, false).
+                                setContentIntent(contentIntent).
                                 getNotification();
                         notification.flags = Notification.FLAG_AUTO_CANCEL;
                         NotificationManager nManager = (NotificationManager)context
@@ -254,7 +254,7 @@ public class DownloadContentJob extends StackableJob {
                                 setWhen(System.currentTimeMillis()).
                                 setContentTitle(title).
                                 setContentText(sentence).
-                                setFullScreenIntent(contentIntent, false).
+                                setContentIntent(contentIntent).
                                 getNotification();
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
