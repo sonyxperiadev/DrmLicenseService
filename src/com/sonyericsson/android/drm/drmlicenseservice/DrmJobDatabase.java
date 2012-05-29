@@ -74,18 +74,20 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
         int retryCount = 0;
         do {
             try {
-                lock.lock();
                 if (sInstance == null) {
                     sInstance = new DrmJobDatabase(context);
                 }
                 if (sqlDb == null) {
-                    sqlDb = sInstance.getWritableDatabase();
+                    try {
+                        lock.lock();
+                        sqlDb = sInstance.getWritableDatabase();
+                    } finally {
+                        lock.unlock();
+                    }
                 }
                 gotResult = true;
             } catch (SQLiteException e) {
                 Log.e(TAG, "Could not create database: " + e.getMessage() + " will try again");
-            } finally {
-                lock.unlock();
             }
             if (!gotResult) {
                 try {
@@ -489,5 +491,10 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
             Log.d(TAG, "We are asked to convert from version " + oldVersion + " to new version "
                     + newVersion);
         }
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException();
     }
 }
