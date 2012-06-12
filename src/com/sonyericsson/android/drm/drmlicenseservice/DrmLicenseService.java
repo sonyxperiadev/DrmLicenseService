@@ -120,7 +120,7 @@ public class DrmLicenseService extends Service {
                         DrmErrorEvent.TYPE_NOT_SUPPORTED, null);
             }
         }
-        return Service.START_STICKY;
+        return Service.START_NOT_STICKY;
     }
 
     @Override
