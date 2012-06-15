@@ -226,11 +226,14 @@ public class WebInitiatorJob extends StackableJob {
                                 status = true;
 
                             } else {
+                                mJobManager.pushJob(new DrmFeedbackJob(
+                                        Constants.PROGRESS_TYPE_FINISHED_JOB,
+                                        type));
+                                mJobManager.pushJob(new ForceFailureJob());
                                 if (Constants.DEBUG) {
                                     Log.w(Constants.LOGTAG, "Unknown initiator: " + type);
                                 }
                                 status = false;
-                                break;
                             }
                             mJobManager.createNewJobGroup();
                         }

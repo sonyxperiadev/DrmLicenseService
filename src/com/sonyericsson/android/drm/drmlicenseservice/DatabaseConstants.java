@@ -166,6 +166,8 @@ public class DatabaseConstants {
 
     public static final int JOBTYPE_WEB_INITIATOR = 11;
 
+    public static final int JOBTYPE_FORCE_FAILURE = 12;
+
     public static final int PARAMETERS_VALUE_TYPE_STRING = 1;
 
     public static final int PARAMETERS_VALUE_TYPE_INTEGER = 2;
