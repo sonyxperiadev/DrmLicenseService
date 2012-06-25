@@ -20,7 +20,9 @@
 * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
 * Sony Mobile Communications AB. All Rights Reserved.
 *
-* Contributor(s):
+* Contributor(s):Sharp Corporation
+* Portions created by Sharp Corporation are Copyright (C) 2012 Sharp 
+* Corporation. All Rights Reserved.
 *
 * ***** END LICENSE BLOCK ***** */
 
@@ -105,7 +107,15 @@ public class Constants {
     public static final String DRM_HEADER = "Header";
 
     public static final String DRM_LA_URL = "LA_URL";
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
+    public static final String DRM_LAINFO = "LAINFO";   // for WMDRM10
 
+    public static final String DRM_WRM_HEADER_VERSION = "version";  // for WMDRM10
+
+    public static final String DRM_WRM_HEADER_VERSION_2000 = "2.0.0.0"; // for WMDRM10
+
+    public static final String DRM_WRM_HEADER_VERSION_4000 = "4.0.0.0"; // for WMDRM10
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
     public static final String DRM_DATA = "Data";
 
     public static final String DRM_CUSTOM_DATA = "CustomData";
@@ -179,4 +189,9 @@ public class Constants {
     public static final int PROGRESS_TYPE_RENEW_RIGHTS = 5;
 
     public static final int PROGRESS_TYPE_HTTP_RETRYING = 6;
+/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
+    public static final String DRM_USER_AGENT = "User-Agent";   // for mms scheme
+
+    public static final String DRM_NSPLAYER = "NSPlayer/10.0.0.3646";   // for mms scheme
+/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
 }

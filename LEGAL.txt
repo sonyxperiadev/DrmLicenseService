@@ -1,4 +1,4 @@
-IMPORTANT – LEGAL NOTICE:
+IMPORTANT - LEGAL NOTICE:
 PLEASE NOTE THAT NEITHER SONY ERICSSON MOBILE COMMUNICATIONS AB (SONY ERICSSON), NOR ANY OF ITS AFFILIATES, LICENSORS OR SUPPLIERS MAKE ANY REPRESENTATION THAT USE OF THE SOFTWARE IN THIS PACKAGE WILL NOT INFRINGE THIRD PARTY PATENT RIGHTS. CERTAIN THIRD PARTIES MAY CLAIM THAT PATENT LICENSES ARE REQUIRED TO USE THIS SOFTWARE. THOSE INTENDING TO USE OR DISTRIBUTE THIS SOFTWARE SHOULD MAKE THEIR OWN ASSESSMENT AS TO THE NECESSITY OF SUCH PATENT LICENSES. BY PROVIDING THIS SOFTWARE, SONY ERICSSON DOES NOT INTEND TO ENCOURAGE ANY USER OF THE SOFTWARE TO VIOLATE THIRD PARTY PATENT RIGHTS. 
 
 
@@ -14,7 +14,9 @@ Software distributed under the License is distributed on an "AS IS" basis, WITHO
 
 The Original Code is the DRM License Service. The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB. Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved. 
 
-Contributor(s): 
+Contributor(s): Sharp Corporation
+Portions created by Sharp Corporation are Copyright (C) 2012 Sharp Corporation. All Rights Reserved.
+
 
 Mozilla Public License Version 1.1
 
@@ -168,8 +170,9 @@ The Original Code is the DRM License Service.
 The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB.
 Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved.
 
-Contributor(s): 
-  
+Contributor(s): Sharp Corporation
+Portions created by Sharp Corporation are Copyright (C) 2012 Sharp Corporation. All Rights Reserved.
+
 
 Alternatively, the contents of this file may be used under the terms
 of the _____ license (the  "[___] License"), in which case the
