@@ -103,6 +103,7 @@ public abstract class StackableJob {
     public DrmInfo sendInfoRequest(DrmInfoRequest request) {
         DrmManagerClient dmc = new DrmManagerClient(mJobManager.getContext());
         DrmInfo reply = dmc.acquireDrmInfo(request);
+        dmc.release();
         return reply;
     }
 

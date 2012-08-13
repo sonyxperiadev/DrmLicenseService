@@ -178,6 +178,7 @@ public class DownloadContentJob extends StackableJob {
             String endStatus = null;
             if (mCursor != null) {
                 mCursor.unregisterContentObserver(mObserver);
+                mCursor.close();
             }
             DownloadManager.Query query = new DownloadManager.Query();
             query.setFilterById(mDownloadId);
@@ -203,6 +204,7 @@ public class DownloadContentJob extends StackableJob {
                         mDownloadFilePath = path;
                         DrmManagerClient drm = new DrmManagerClient(context);
                         String mimeType = drm.getOriginalMimeType(path);
+                        drm.release();
 
                         // Create an Intent that will be issued when user taps a
                         // notification of download result .
@@ -220,7 +222,7 @@ public class DownloadContentJob extends StackableJob {
                                 setContentTitle(title).
                                 setContentText(sentence).
                                 setContentIntent(contentIntent).
-                                getNotification();
+                                build();
                         notification.flags = Notification.FLAG_AUTO_CANCEL;
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
@@ -255,7 +257,7 @@ public class DownloadContentJob extends StackableJob {
                                 setContentTitle(title).
                                 setContentText(sentence).
                                 setContentIntent(contentIntent).
-                                getNotification();
+                                build();
                         NotificationManager nManager = (NotificationManager)context
                                 .getSystemService(Context.NOTIFICATION_SERVICE);
                         nManager.notify((int)mDownloadId, notification);

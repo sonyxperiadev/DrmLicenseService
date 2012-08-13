@@ -17,6 +17,8 @@
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
 * Sony Ericsson Mobile Communications AB. All Rights Reserved.
+* Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+* Sony Mobile Communications AB. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -61,7 +63,7 @@ public class ServiceUtility {
             DrmManagerClient dmc = new DrmManagerClient(context);
             if (dmc != null) {
                 sendOnInfoResult(context, dmc, result, filePath);
-                dmc = null;
+                dmc.release();
             }
         }
     }
