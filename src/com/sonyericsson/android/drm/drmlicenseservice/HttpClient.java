@@ -21,7 +21,7 @@
  * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):Sharp Corporation
- * Portions created by Sharp Corporation are Copyright (C) 2012 Sharp 
+ * Portions created by Sharp Corporation are Copyright (C) 2012 Sharp
  * Corporation. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** */
@@ -29,20 +29,16 @@
 package com.sonyericsson.android.drm.drmlicenseservice;
 
 import org.apache.http.HttpResponse;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM,mms Support] 2012.04.04 Start*/
 import org.apache.http.conn.ClientConnectionManager;   //mms Support
 import org.apache.http.conn.scheme.Scheme;             //mms Support
 import org.apache.http.conn.scheme.SchemeRegistry;     //mms Support
 import org.apache.http.message.BasicNameValuePair;     //WMDRM Support
 import org.apache.http.protocol.HTTP;                  //WMDRM Support
-/*SHARP_EXTEND for PlayReady ADD [WMDRM,mms Support] 2012.04.04 End*/
 import org.apache.http.conn.params.ConnManagerParams;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.params.HttpConnectionParams;
@@ -56,9 +52,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.http.AndroidHttpClient;
 import android.os.Build;
 import android.os.Bundle;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM,mms Support] 2012.04.04 Start*/
-import android.util.Log;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM,mms Support] 2012.04.04 End*/
+import android.os.Environment;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -69,10 +63,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
 import java.util.Arrays;
 import java.util.List;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
 import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
@@ -81,10 +73,8 @@ import java.util.concurrent.TimeUnit;
 public class HttpClient {
 
     private static HashMap<Long, HttpThread> mIdMap = new HashMap<Long, HttpClient.HttpThread>(1);
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
-    // for mms scheme
+
     private static boolean mWmsp = false;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
 
     // Optional interface to implement by clients, if they need data during
     // download
@@ -188,11 +178,9 @@ public class HttpClient {
         private boolean keepRunning = true;
 
         private RetryCallback mRetryCallback;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
         private static int sMmsPort = 80;    // for mms scheme
 
         private String mUserAgent = Constants.FALLBACK_USER_AGENT;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
 
         public void prepareCancel() {
             keepRunning = false;
@@ -230,12 +218,12 @@ public class HttpClient {
                 }
             }
         }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
+
         public String getUserAgent_mms() {
             // Log.e(Constants.LOGTAG, "getUserAgent_mms() mUserAgent = " + mUserAgent);
             return mUserAgent;
         }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
+
         private String getUserAgent() {
             String userAgent = Constants.FALLBACK_USER_AGENT;
             boolean uaFinalized = false;
@@ -263,23 +251,23 @@ public class HttpClient {
                     userAgent = appName + "/" + versionName + " (" + Build.VERSION.RELEASE + ")";
                 }
             }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
+
             mUserAgent = userAgent;
-            // Log.e(Constants.LOGTAG, "getUserAgent() userAgent = " + userAgent);
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
+            // Log.d(Constants.LOGTAG, "getUserAgent() userAgent = " + userAgent);
+
             return userAgent;
         }
 
         public void run() {
             String userAgent = getUserAgent();
             AndroidHttpClient client = AndroidHttpClient.newInstance(userAgent);
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
+
             // for mms scheme
             ClientConnectionManager ccg = client.getConnectionManager();
             SchemeRegistry sr = ccg.getSchemeRegistry();
             Scheme httpScm = sr.get("http");
             sr.register(new Scheme("mms", httpScm.getSocketFactory(), sMmsPort));
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
+
             HttpConnectionParams.setConnectionTimeout(client.getParams(), timeout * 1000);
             HttpConnectionParams.setSoTimeout(client.getParams(), timeout * 1000);
             ConnManagerParams.setTimeout(client.getParams(), timeout * 1000);
@@ -371,14 +359,12 @@ public class HttpClient {
                     // of them
                     if (statusCode == 200 || statusCode == 500) {
                         // Valid
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
-                        // for mms scheme
-                        if (request.getMethod().equals("GET") && respData == null) {
+                        if ("mms".equals(request.getURI().getScheme()) &&
+                                request.getMethod().equals("GET") && respData == null) {
                             // Log.d(Constants.LOGTAG, "respData == null");
                             mWmsp = true;
                             continue;
                         }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
                         break;
                     } else if (statusCode == 301 || statusCode == 302 || statusCode == 303
                             || statusCode == 307) {
@@ -443,10 +429,7 @@ public class HttpClient {
         private ByteArrayBuffer inputStreamToBuffer(HttpRequestBase request, InputStream is) {
             BufferedInputStream bis = new BufferedInputStream(is);
             ByteArrayBuffer bab = new ByteArrayBuffer(4096);
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
-            // for mms scheme
             boolean isSuccess = true;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
             try {
                 int len = -1;
                 byte[] buf = new byte[1024];
@@ -457,26 +440,21 @@ public class HttpClient {
                             // Callback was unsuccessful. This indicates that
                             // download shall be stopped.
                             request.abort();
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
                             isSuccess = true;
                             break;
                         } else {
                             // for mms scheme
                             // Log.d(Constants.LOGTAG, "isSuccess = false");
                             isSuccess = false;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
                         }
                     }
                 }
             } catch (IOException e) {
                 bab = null;
             }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
-            // for mms scheme
             if (!isSuccess) {
                 bab = null;
             }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
             try {
                 is.close();
             } catch (IOException e) {
@@ -554,14 +532,14 @@ public class HttpClient {
 
     public static Response post(Context context, long sessionId, String url, String messageType,
             String data, Bundle parameters, RetryCallback retryCallback) {
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
         if (parameters != null && parameters.containsKey(Constants.DRM_LAINFO)) {
             // for WMDRM10
-            return postWmDrm(context, sessionId, url, messageType, data, parameters, null, retryCallback);
+            return postWmDrm(context, sessionId, url, messageType, data, parameters, null,
+                    retryCallback);
         } else {
-            return post(context, sessionId, url, messageType, data, parameters, null, retryCallback);
+            return post(context, sessionId, url, messageType, data, parameters, null,
+                    retryCallback);
         }
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
     }
 
     public static Response post(Context context, long sessionId, String url, String messageType,
@@ -604,9 +582,10 @@ public class HttpClient {
                 });
         return response;
     }
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
-    public static Response postWmDrm(Context context, long sessionId, String url, String messageType, String data,
-            Bundle parameters, DataHandlerCallback callback, RetryCallback retryCallback) {
+
+    public static Response postWmDrm(Context context, long sessionId, String url,
+            String messageType, String data, Bundle parameters, DataHandlerCallback callback,
+            RetryCallback retryCallback) {
         Response response = null;
         final String fUrl = url;
         final String fData = data;
@@ -633,7 +612,8 @@ public class HttpClient {
                             "challenge", fData));
                     // Log.d(Constants.LOGTAG, "d = " + data);
                     try {
-                        ((HttpEntityEnclosingRequestBase) request).setEntity(new UrlEncodedFormEntity(data, HTTP.UTF_8));
+                        ((HttpEntityEnclosingRequestBase) request).setEntity(
+                                new UrlEncodedFormEntity(data, HTTP.UTF_8));
                     } catch (UnsupportedEncodingException e) {
                         // Log.d(Constants.LOGTAG, "Encoding is not supported: " +
                         // e.getMessage());
@@ -645,7 +625,6 @@ public class HttpClient {
         });
         return response;
     }
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
 
     public static Response get(Context context, long sessionId, String url,
             RetryCallback retryCallback) {
@@ -662,9 +641,7 @@ public class HttpClient {
         Response response = null;
         final String fUrl = url;
         final Bundle fParameters = parameters;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
         final long fSessionId = sessionId;
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
         response = runAsThread(context, sessionId, parameters, retryCallback,
                 new HttpThread.HttpThreadAction(callback) {
                     public HttpRequestBase getRequest() {
@@ -675,11 +652,11 @@ public class HttpClient {
                             } catch (IllegalArgumentException e) {
                                 return null;
                             }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 Start*/
-                            // for mms scheme
                             if (mWmsp) {
+                                // for mms scheme
                                 mWmsp = false;
-                                // Log.d(Constants.LOGTAG, "HttpClient#get#getRequest() WM Streaming Protocol");
+                                // Log.d(Constants.LOGTAG, "HttpClient#get#getRequest() "
+                                //     + "WM Streaming Protocol");
                                 String userAgent = Constants.FALLBACK_USER_AGENT;
                                 HttpThread t = mIdMap.get(fSessionId);
                                 if (t != null) {
@@ -690,7 +667,6 @@ public class HttpClient {
                                 request.setHeader(Constants.DRM_USER_AGENT, Constants.DRM_NSPLAYER
                                         + " " + userAgent);
                             }
-/*SHARP_EXTEND for PlayReady ADD [mms Support] 2012.04.04 End*/
                             addParameters(fParameters, request);
                         }
                         return request;
@@ -719,14 +695,15 @@ public class HttpClient {
 
     private static void writeDataToFile(String suffix, ByteArrayBuffer data) {
         if (Constants.DEBUG) {
-            File d = new File("/sdcard/dls");
+            String sdcard = Environment.getExternalStorageDirectory().getPath();
+            File d = new File(sdcard + "/dls");
             /* findbugs warning. Should perhaps be getexternalstorage? */
             if (!d.exists()) {
                 d.mkdirs();
                 /* findbugs wants the return to be checked */
             }
             String datestr = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS-").format(new Date());
-            File f = new File("/sdcard/dls/" + datestr + suffix + ".xml");
+            File f = new File(sdcard + "/dls/" + datestr + suffix + ".xml");
             if (data != null) {
                 try {
                     FileOutputStream fos = new FileOutputStream(f);

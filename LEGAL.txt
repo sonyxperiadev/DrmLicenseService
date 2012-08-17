@@ -12,7 +12,7 @@ http://www.mozilla.org/MPL/
 
 Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the specific language governing rights and limitations under the License.
 
-The Original Code is the DRM License Service. The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB. Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved. 
+The Original Code is the DRM License Service. The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB. Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved. Portions created by Sony Mobile Communications AB are Copyright (C) 2012 Sony Mobile Communications AB. All Rights Reserved.
 
 Contributor(s): Sharp Corporation
 Portions created by Sharp Corporation are Copyright (C) 2012 Sharp Corporation. All Rights Reserved.
@@ -169,6 +169,7 @@ The Original Code is the DRM License Service.
 
 The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB.
 Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved.
+Portions created by Sony Mobile Communications AB are Copyright (C) 2012 Sony Mobile Communications AB. All Rights Reserved.
 
 Contributor(s): Sharp Corporation
 Portions created by Sharp Corporation are Copyright (C) 2012 Sharp Corporation. All Rights Reserved.

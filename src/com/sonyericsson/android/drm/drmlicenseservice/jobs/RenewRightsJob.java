@@ -21,7 +21,7 @@
  * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):Sharp Corporation
- * Portions created by Sharp Corporation are Copyright (C) 2012 Sharp 
+ * Portions created by Sharp Corporation are Copyright (C) 2012 Sharp
  * Corporation. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** */
@@ -41,6 +41,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -48,9 +49,8 @@ import android.database.Cursor;
 import android.drm.DrmInfo;
 import android.drm.DrmInfoRequest;
 import android.net.Uri;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
 import android.util.Log;
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
+
 import java.io.CharArrayReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -86,10 +86,7 @@ public class RenewRightsJob extends StackableJob {
         if (mFileUri != null) {
             scheme = mFileUri.getScheme();
         }
-/*SHARP_EXTEND for PlayReady MOD [mms Support] 2012.04.04 Start*/
-        // for mms scheme
         if (mFileUri != null && ("http".equals(scheme) || "mms".equals(scheme))) {
-/*SHARP_EXTEND for PlayReady MOD [mms Support] 2012.04.04 End*/
             tempFile = getUniqueTempFileName(mJobManager.getContext(),
                     mFileUri.getLastPathSegment());
             if (tempFile != null) {
@@ -101,6 +98,7 @@ public class RenewRightsJob extends StackableJob {
                 final String callbackFile = tempFile;
 
                 DataHandlerCallback callback = new DataHandlerCallback() {
+                    @SuppressLint("WorldReadableFiles")
                     public boolean handleData(byte[] buffer, int length) {
                         try {
                             FileOutputStream fos = null;
@@ -287,7 +285,7 @@ public class RenewRightsJob extends StackableJob {
                 xr.parse(new InputSource(reader));
 
                 // Parsing is completed
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
+
                 String wrmHeaderVer = dataHandler.getValue(Constants.DRM_WRM_HEADER_VERSION);
                 if (Constants.DRM_WRM_HEADER_VERSION_2000.equals(wrmHeaderVer)) {
                     // for WMDRM10
@@ -305,7 +303,7 @@ public class RenewRightsJob extends StackableJob {
                         Log.w(Constants.LOGTAG, "Got WrmHeader Ver. = " + wrmHeaderVer);
                     }
                 }
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
+
                 mLUI_URL = dataHandler.getValue("LUI_URL");
             } catch (ParserConfigurationException e) {
             } catch (SAXException e) {
@@ -336,14 +334,13 @@ public class RenewRightsJob extends StackableJob {
         @Override
         public void startElement(String namespaceURI, String localName, String qName,
                 Attributes atts) throws SAXException {
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
             // for WMDRM10
             // Log.d(Constants.LOGTAG, "startElement l=" + localName + " n=" + qName);
             for (int i = 0; i < atts.getLength(); i++) {
-                // Log.d(Constants.LOGTAG, "attr(" + i + ") l=" + atts.getLocalName(i) + " v=" + atts.getValue(i));
+                // Log.d(Constants.LOGTAG, "attr(" + i + ") l=" + atts.getLocalName(i)
+                //     + " v=" + atts.getValue(i));
                 mValues.put(atts.getLocalName(i), atts.getValue(i));
             }
-/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
             mTagStack.push(localName);
         }
 
