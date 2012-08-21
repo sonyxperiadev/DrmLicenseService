@@ -20,9 +20,12 @@
  * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
  * Sony Mobile Communications AB. All Rights Reserved.
  *
- * Contributor(s):
+ * Contributor(s):Sharp Corporation
+ * Portions created by Sharp Corporation are Copyright (C) 2012 Sharp 
+ * Corporation. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** */
+
 
 package com.sonyericsson.android.drm.drmlicenseservice.jobs;
 
@@ -45,7 +48,9 @@ import android.database.Cursor;
 import android.drm.DrmInfo;
 import android.drm.DrmInfoRequest;
 import android.net.Uri;
-
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
+import android.util.Log;
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
 import java.io.CharArrayReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -81,8 +86,10 @@ public class RenewRightsJob extends StackableJob {
         if (mFileUri != null) {
             scheme = mFileUri.getScheme();
         }
-
-        if (mFileUri != null && "http".equals(scheme)) {
+/*SHARP_EXTEND for PlayReady MOD [mms Support] 2012.04.04 Start*/
+        // for mms scheme
+        if (mFileUri != null && ("http".equals(scheme) || "mms".equals(scheme))) {
+/*SHARP_EXTEND for PlayReady MOD [mms Support] 2012.04.04 End*/
             tempFile = getUniqueTempFileName(mJobManager.getContext(),
                     mFileUri.getLastPathSegment());
             if (tempFile != null) {
@@ -280,7 +287,25 @@ public class RenewRightsJob extends StackableJob {
                 xr.parse(new InputSource(reader));
 
                 // Parsing is completed
-                mLA_URL = dataHandler.getValue("LA_URL");
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
+                String wrmHeaderVer = dataHandler.getValue(Constants.DRM_WRM_HEADER_VERSION);
+                if (Constants.DRM_WRM_HEADER_VERSION_2000.equals(wrmHeaderVer)) {
+                    // for WMDRM10
+                    if (Constants.DEBUG) {
+                        Log.d(Constants.LOGTAG, "Get WrmHeader(for WMDRM10)");
+                    }
+                    mLA_URL = dataHandler.getValue(Constants.DRM_LAINFO);
+                    mJobManager.addParameter(Constants.DRM_LAINFO, 1);
+                } else if (Constants.DRM_WRM_HEADER_VERSION_4000.equals(wrmHeaderVer)) {
+                    // for PlayReady
+                    mLA_URL = dataHandler.getValue("LA_URL");
+                } else {
+                    // for Unknown
+                    if (Constants.DEBUG) {
+                        Log.w(Constants.LOGTAG, "Got WrmHeader Ver. = " + wrmHeaderVer);
+                    }
+                }
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
                 mLUI_URL = dataHandler.getValue("LUI_URL");
             } catch (ParserConfigurationException e) {
             } catch (SAXException e) {
@@ -311,6 +336,14 @@ public class RenewRightsJob extends StackableJob {
         @Override
         public void startElement(String namespaceURI, String localName, String qName,
                 Attributes atts) throws SAXException {
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 Start*/
+            // for WMDRM10
+            // Log.d(Constants.LOGTAG, "startElement l=" + localName + " n=" + qName);
+            for (int i = 0; i < atts.getLength(); i++) {
+                // Log.d(Constants.LOGTAG, "attr(" + i + ") l=" + atts.getLocalName(i) + " v=" + atts.getValue(i));
+                mValues.put(atts.getLocalName(i), atts.getValue(i));
+            }
+/*SHARP_EXTEND for PlayReady ADD [WMDRM Support] 2012.04.04 End*/
             mTagStack.push(localName);
         }
 
