@@ -38,6 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -94,7 +95,10 @@ public class RenewRightsJob extends StackableJob {
                 final String callbackFile = tempFile;
 
                 DataHandlerCallback callback = new DataHandlerCallback() {
+                    int dataCounter = 0;
+                    @SuppressLint("WorldReadableFiles")
                     public boolean handleData(byte[] buffer, int length) {
+                        dataCounter += length;
                         try {
                             FileOutputStream fos = null;
                             Context context = mJobManager.getContext();
@@ -134,6 +138,11 @@ public class RenewRightsJob extends StackableJob {
                                     return false;
                                 }
                             }
+                        }
+                        if (dataCounter > 20*1024) {
+                            // PR header has not been found in the first 20kB of the file,
+                            // it is probably a non-DRM file, stop trying to renew.
+                            return false;
                         }
                         return true;
                     }
@@ -210,6 +219,9 @@ public class RenewRightsJob extends StackableJob {
             } else {
                 mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
             }
+        } else {
+            // The file is not a DRM file
+            mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -6);
         }
         if (tempFile != null) {
             if (!(new File(tempFile).delete())) {

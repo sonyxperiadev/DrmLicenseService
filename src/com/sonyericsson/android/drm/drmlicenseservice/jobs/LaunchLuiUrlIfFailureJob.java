@@ -53,9 +53,11 @@ public class LaunchLuiUrlIfFailureJob extends StackableJob {
     public void executeAfterEarlierFailure() {
         if (mJobManager.getCallbackHandler() == null) {
             // Not called via AIDL, open redirectUrl in browser
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mLuiUrl));
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mJobManager.getContext().startActivity(intent);
+            if (mLuiUrl != null && mLuiUrl.trim().length() > 8) {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mLuiUrl));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                mJobManager.getContext().startActivity(intent);
+            }
         } else {
             Bundle parameters = mJobManager.getParameters();
             if (parameters != null && (parameters.containsKey(Constants.DRM_KEYPARAM_REDIRECT_URL)

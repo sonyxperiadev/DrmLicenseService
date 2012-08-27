@@ -1,4 +1,4 @@
-IMPORTANT – LEGAL NOTICE:
+IMPORTANT - LEGAL NOTICE:
 PLEASE NOTE THAT NEITHER SONY ERICSSON MOBILE COMMUNICATIONS AB (SONY ERICSSON), NOR ANY OF ITS AFFILIATES, LICENSORS OR SUPPLIERS MAKE ANY REPRESENTATION THAT USE OF THE SOFTWARE IN THIS PACKAGE WILL NOT INFRINGE THIRD PARTY PATENT RIGHTS. CERTAIN THIRD PARTIES MAY CLAIM THAT PATENT LICENSES ARE REQUIRED TO USE THIS SOFTWARE. THOSE INTENDING TO USE OR DISTRIBUTE THIS SOFTWARE SHOULD MAKE THEIR OWN ASSESSMENT AS TO THE NECESSITY OF SUCH PATENT LICENSES. BY PROVIDING THIS SOFTWARE, SONY ERICSSON DOES NOT INTEND TO ENCOURAGE ANY USER OF THE SOFTWARE TO VIOLATE THIRD PARTY PATENT RIGHTS. 
 
 
@@ -12,7 +12,7 @@ http://www.mozilla.org/MPL/
 
 Software distributed under the License is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for the specific language governing rights and limitations under the License.
 
-The Original Code is the DRM License Service. The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB. Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved. 
+The Original Code is the DRM License Service. The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB. Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. Portions created by Sony Mobile Communications AB are Copyright (C) 2012 Sony Mobile Communications AB. All Rights Reserved.
 
 Contributor(s): 
 
@@ -166,7 +166,8 @@ under the License.
 The Original Code is the DRM License Service.
 
 The Initial Developer of the Original Code is Sony Ericsson Mobile Communications AB.
-Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB. All Rights Reserved.
+Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011 Sony Ericsson Mobile Communications AB.
+Portions created by Sony Mobile Communications AB are Copyright (C) 2012 Sony Mobile Communications AB. All Rights Reserved.
 
 Contributor(s): 
   

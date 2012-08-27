@@ -299,6 +299,10 @@ public class HttpClient {
                         request.abort();
                         statusCode = -4;
                         break;
+                    } catch (IllegalArgumentException e) {
+                        request.abort();
+                        statusCode = -4;
+                        break;
                     } catch (IOException e) {
                         request.abort();
                         requestException = e;

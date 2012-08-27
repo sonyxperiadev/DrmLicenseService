@@ -30,6 +30,7 @@ import com.sonyericsson.android.drm.drmlicenseservice.jobs.AcknowledgeLicenseJob
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.AcquireLicenseJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.DownloadContentJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.DrmFeedbackJob;
+import com.sonyericsson.android.drm.drmlicenseservice.jobs.ForceFailureJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.GetMeteringCertificateJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.JoinDomainJob;
 import com.sonyericsson.android.drm.drmlicenseservice.jobs.LaunchLuiUrlIfFailureJob;
@@ -264,6 +265,12 @@ public class DrmJobDatabase extends SQLiteOpenHelper {
                 DrmFeedbackJob dialogsResult = new DrmFeedbackJob(0);
                 dialogsResult.readFromDB(cursor);
                 result = dialogsResult;
+                break;
+
+            case DatabaseConstants.JOBTYPE_FORCE_FAILURE:
+                ForceFailureJob forceResult = new ForceFailureJob();
+                forceResult.readFromDB(cursor);
+                result = forceResult;
                 break;
 
             case DatabaseConstants.JOBTYPE_GET_METERING_CERTIFICATE:
