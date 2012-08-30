@@ -60,6 +60,9 @@ public abstract class StackableJob {
             if (callback != null) {
                 Bundle parameters = new Bundle();
                 parameters.putString(Constants.DRM_KEYPARAM_URL, url);
+                int groups = mJobManager.getNumberOfGroups();
+                parameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, groups);
+                parameters.putInt(Constants.DRM_KEYPARAM_GROUP_NUMBER, mGroupId);
                 if (httpError != 0) {
                     parameters.putInt(Constants.DRM_KEYPARAM_HTTP_ERROR, httpError);
                 }
