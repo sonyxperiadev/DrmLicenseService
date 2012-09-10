@@ -186,7 +186,6 @@ public class WebInitiatorJob extends StackableJob {
                                     mJobManager.pushJob(new AcquireLicenseJob(header,
                                             customData));
                                     sendLicReqStartMsg = true;
-                                    status = true;
                                 } else {
                                     if (Constants.DEBUG) {
                                         Log.d(Constants.LOGTAG,
@@ -203,7 +202,6 @@ public class WebInitiatorJob extends StackableJob {
                                         .get("JoinDomain.Revision"), data
                                         .get("JoinDomain.CustomData")));
                                 sendLicReqStartMsg = true;
-                                status = true;
                             } else if (type.equals("LeaveDomain")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
                                         Constants.PROGRESS_TYPE_FINISHED_JOB, "LeaveDomain"));
@@ -213,7 +211,6 @@ public class WebInitiatorJob extends StackableJob {
                                         .get("LeaveDomain.AccountID"), data
                                         .get("LeaveDomain.Revision"), data
                                         .get("LeaveDomain.CustomData")));
-                                status = true;
                             } else if (type.equals("Metering")) {
                                 mJobManager.pushJob(new DrmFeedbackJob(
                                         Constants.PROGRESS_TYPE_FINISHED_JOB,
@@ -223,7 +220,6 @@ public class WebInitiatorJob extends StackableJob {
                                         .get("Metering.MeteringID"), data
                                         .get("Metering.CustomData"), data
                                         .get("Metering.MaxPackets"), true));
-                                status = true;
 
                             } else {
                                 mJobManager.pushJob(new DrmFeedbackJob(
@@ -233,13 +229,13 @@ public class WebInitiatorJob extends StackableJob {
                                 if (Constants.DEBUG) {
                                     Log.w(Constants.LOGTAG, "Unknown initiator: " + type);
                                 }
-                                status = false;
                             }
                             mJobManager.createNewJobGroup();
                         }
                         mJobManager.pushJob(new DrmFeedbackJob(
                                 Constants.PROGRESS_TYPE_WEBINI_COUNT, mUri));
-                        if (sendLicReqStartMsg == true && status == true) {
+                        status = true;
+                        if (sendLicReqStartMsg == true) {
                             ServiceUtility.sendOnInfoResult(mJobManager.getContext(),
                                     DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, mUri.getEncodedPath());
                         }
