@@ -17,7 +17,7 @@
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Ericsson Mobile Communications AB are Copyright (C) 2011
  * Sony Ericsson Mobile Communications AB.
- * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
+ * Portions created by Sony Mobile Communications AB are Copyright (C) 2012-2013
  * Sony Mobile Communications AB. All Rights Reserved.
  *
  * Contributor(s):
@@ -39,10 +39,13 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 import android.drm.DrmInfoEvent;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -106,10 +109,37 @@ public class WebInitiatorJob extends StackableJob {
                             }
                         }
                     }
-                } else if ("file".equals(mUri.getScheme())) {
+                } else if (ContentResolver.SCHEME_FILE.equals(mUri.getScheme()) ||
+                            ContentResolver.SCHEME_CONTENT.equals(mUri.getScheme())) {
                     // This will only happen if file is loaded from Download
                     // List
-                    FileInputStream fis = new FileInputStream(new File(mUri.getPath()));
+                    String path = "";
+                    if (ContentResolver.SCHEME_CONTENT.equals(mUri.getScheme())) {
+                        String[] projection = new String[] {MediaStore.MediaColumns.DATA};
+                        Cursor cursor = null;
+                        try {
+                            cursor = mJobManager.getContext().getContentResolver().query(
+                                    mUri, projection, null, null, null);
+                            if (null == cursor || 0 == cursor.getCount() || !cursor.moveToFirst()) {
+                                throw new IllegalArgumentException("Given Uri could not be found" +
+                                        " in media store");
+                            }
+                            int pathIndex =
+                                cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
+                            path = cursor.getString(pathIndex);
+                        } catch (SQLiteException e) {
+                            throw new IllegalArgumentException("Given Uri is not formatted in a " +
+                                    "way so that it can be found in media store.");
+                        } finally {
+                            if (null != cursor) {
+                                cursor.close();
+                            }
+                        }
+                    } else {
+                        // In case scheme equals SCHEME_FILE
+                        path = mUri.getPath();
+                    }
+                    FileInputStream fis = new FileInputStream(path);
                     BufferedInputStream bis = new BufferedInputStream(fis);
                     StringBuffer buf = new StringBuffer();
                     while (bis.available() > 0) {

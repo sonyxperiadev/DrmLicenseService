@@ -3,8 +3,8 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17448963"
-    android:versionName="01.041.0003">
+    android:versionCode="17448964"
+    android:versionName="01.041.0004">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
