@@ -151,6 +151,8 @@ public class WebInitiatorJob extends StackableJob {
                     bis.close();
                     fis.close();
                     uriToRemove = mUri;
+                } else {
+                    throw new IllegalArgumentException("Unsupported scheme in Uri.");
                 }
 
                 Reader reader = null;
@@ -288,6 +290,10 @@ public class WebInitiatorJob extends StackableJob {
                     mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
             } catch (IOException e) {
+                if (mJobManager != null) {
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
+                }
+            } catch (IllegalArgumentException e) {
                 if (mJobManager != null) {
                     mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }

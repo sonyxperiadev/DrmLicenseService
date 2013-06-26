@@ -3,14 +3,15 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17448964"
-    android:versionName="01.041.0004">
+    android:versionCode="17448965"
+    android:versionName="01.041.0005">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_ALL_DOWNLOADS" />
     <uses-sdk android:minSdkVersion="16"/>
 
     <application android:label="Drm License Service">
