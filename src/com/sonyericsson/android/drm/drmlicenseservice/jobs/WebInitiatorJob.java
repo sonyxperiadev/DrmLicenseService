@@ -113,7 +113,7 @@ public class WebInitiatorJob extends StackableJob {
                             ContentResolver.SCHEME_CONTENT.equals(mUri.getScheme())) {
                     // This will only happen if file is loaded from Download
                     // List
-                    String path = "";
+                    String path = null;
                     if (ContentResolver.SCHEME_CONTENT.equals(mUri.getScheme())) {
                         String[] projection = new String[] {MediaStore.MediaColumns.DATA};
                         Cursor cursor = null;
@@ -121,15 +121,12 @@ public class WebInitiatorJob extends StackableJob {
                             cursor = mJobManager.getContext().getContentResolver().query(
                                     mUri, projection, null, null, null);
                             if (null == cursor || 0 == cursor.getCount() || !cursor.moveToFirst()) {
-                                throw new IllegalArgumentException("Given Uri could not be found" +
-                                        " in media store");
+                                mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
+                            } else {
+                                int pathIndex =
+                                        cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
+                                path = cursor.getString(pathIndex);
                             }
-                            int pathIndex =
-                                cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
-                            path = cursor.getString(pathIndex);
-                        } catch (SQLiteException e) {
-                            throw new IllegalArgumentException("Given Uri is not formatted in a " +
-                                    "way so that it can be found in media store.");
                         } finally {
                             if (null != cursor) {
                                 cursor.close();
@@ -139,20 +136,25 @@ public class WebInitiatorJob extends StackableJob {
                         // In case scheme equals SCHEME_FILE
                         path = mUri.getPath();
                     }
-                    FileInputStream fis = new FileInputStream(path);
-                    BufferedInputStream bis = new BufferedInputStream(fis);
-                    StringBuffer buf = new StringBuffer();
-                    while (bis.available() > 0) {
-                        byte data[] = new byte[1024];
-                        int count = bis.read(data);
-                        buf.append(new String(data, 0, count));
+                    if (null != path) {
+                        FileInputStream fis = new FileInputStream(path);
+                        BufferedInputStream bis = new BufferedInputStream(fis);
+                        StringBuffer buf = new StringBuffer();
+                        while (bis.available() > 0) {
+                            byte data[] = new byte[1024];
+                            int count = bis.read(data);
+                            buf.append(new String(data, 0, count));
+                        }
+                        respData = buf.toString();
+                        bis.close();
+                        fis.close();
+                    } else {
+                        mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                     }
-                    respData = buf.toString();
-                    bis.close();
-                    fis.close();
                     uriToRemove = mUri;
                 } else {
-                    throw new IllegalArgumentException("Unsupported scheme in Uri.");
+                    // Unsupported scheme in Uri
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
 
                 Reader reader = null;
@@ -293,7 +295,13 @@ public class WebInitiatorJob extends StackableJob {
                 if (mJobManager != null) {
                     mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
-            } catch (IllegalArgumentException e) {
+            } catch (SecurityException e) {
+                // Given Uri could not be found in media store
+                if (mJobManager != null) {
+                    mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
+                }
+            } catch (SQLiteException e) {
+                // Given Uri is not formatted in a way so that it can be found in media store
                 if (mJobManager != null) {
                     mJobManager.addParameter(Constants.DRM_KEYPARAM_HTTP_ERROR, -5);
                 }
