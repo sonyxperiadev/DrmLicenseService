@@ -19,6 +19,8 @@
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
 * Sony Mobile Communications AB. All Rights Reserved.
+* Portions created by Sony Mobile Communications Inc. are Copyright (C) 2014
+* Sony Mobile Communications Inc. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -70,7 +72,9 @@ interface IDrmLicenseServiceCallback {
  *                             "CONTENT_URL", "http://www.anywhere.com/content.file"
  *                             "TYPE", "AcquireLicense"/"JoinDomain"/"LeaveDomain"/"Metering"
  *                          state == 5
- *                             "FILEPATH", "/sdcard/music/file.isma"
+ *                             "HEADER", optional, "<WRMHEADER>...</WRMHEADER>"
+ *                             "PSSHBOX", optional, (byte array, containing pssh data)
+ *                             "FILEPATH", optional, "/sdcard/music/file.isma"
  *                          state == 6
  *                             "URL", "http://some.server/some/path"
  *                             It is also most likely that HTTP_ERROR (and maybe also

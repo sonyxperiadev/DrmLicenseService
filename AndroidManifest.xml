@@ -3,26 +3,28 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17448966"
-    android:versionName="01.041.0006">
+    android:versionCode="17596417"
+    android:versionName="01.050.0001">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-sdk android:minSdkVersion="16"/>
+    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="21"/>
 
-    <application android:label="Drm License Service">
+    <application android:label="Drm License Service" android:allowBackup="false" >
 
         <!-- *************** Drm License Service things *************** -->
-        <service android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseService"
-            android:process=":remote" android:permission="android.permission.INTERNET">
+        <service android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseService">
             <intent-filter>
                 <!-- Listen to ServiceConnections for AIDL interface -->
                 <action android:name="com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseService" />
             </intent-filter>
         </service>
+        <service android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseTaskService"
+            android:exported="false">
+        </service>
+
         <!--
             The receiver or activity that catches the intent to renew the content rights and
             starts the service
@@ -57,31 +59,21 @@
 
         <receiver android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseServiceBroadcastReceiver"
             android:exported="true">
-            <!-- * Need boot completed to be able to clear the job database of unfinished jobs * -->
             <intent-filter>
-                <action android:name ="android.intent.action.BOOT_COMPLETED"/>
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <!-- *************** Filter for MS PlayReady files *************** -->
-            <intent-filter>
-                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
-                <data android:scheme="file" android:pathPattern=".*\\.isma"
-                    android:host="content.protected" />
+                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
+                <data android:scheme="file" android:pathPattern=".*\\.isma" />
             </intent-filter>
             <intent-filter>
-                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
-                <data android:scheme="file" android:pathPattern=".*\\.ismv"
-                    android:host="content.protected" />
+                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
+                <data android:scheme="file" android:pathPattern=".*\\.ismv"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
-                <data android:scheme="file" android:pathPattern=".*\\.pya"
-                    android:host="content.protected" />
+                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
+                <data android:scheme="file" android:pathPattern=".*\\.pya"/>
             </intent-filter>
             <intent-filter>
-                <action android:name="com.sonyericsson.android.drm.GET_RIGHTS" />
-                <data android:scheme="file" android:pathPattern=".*\\.pyv"
-                    android:host="content.protected" />
+                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
+                <data android:scheme="file" android:pathPattern=".*\\.pyv"/>
             </intent-filter>
         </receiver>
     </application>

@@ -19,6 +19,8 @@
 * Sony Ericsson Mobile Communications AB.
 * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
 * Sony Mobile Communications AB. All Rights Reserved.
+* Portions created by Sony Mobile Communications Inc. are Copyright (C) 2014
+* Sony Mobile Communications Inc. All Rights Reserved.
 *
 * Contributor(s):
 *
@@ -81,9 +83,36 @@ long handleWebInitiator(in Uri uri,
 long renewRights(in Uri filePath, in Bundle parameters, IDrmLicenseServiceCallback callbackHandler);
 
 /**
+ * Renew rights for a file/uri or pssh box. If a pssh box is supplied then the file is only
+ * used as information in the callback.
+ *
+ * @param[in] renewData  A map containing at least one of the following parameters to get rights:
+ *                           "HEADER" // String containing header, 1st prio
+ *                           "PSSH_BOX" // Byte[] containing pssh data, 2nd prio
+ *                           "FILE_PATH" // File/uri to acquire rights, 3rd prio
+ *                                       // Is used to get header if HEADER and PSSH_BOX is missing
+ * @param[in] parameters A map containing additional parameters, examples:
+ *                           "USER_AGENT", "Operator/2.0 service/3.0"
+ *                           "FRIENDLY_NAME", "NameOfPhone" // Used in domain protocols to
+ *                                                          // identify the device
+ *                           "HTTP_HEADERS" // A Bundle of headers where key+value is used in
+ *                                          // in the http request
+ *                           "REDIRECT_LIMIT" // Max number of http redirects to follow (def. 20)
+ *                           "TIME_OUT",    // Connection timeout (in seconds), default is 60
+ *                           "RETRY_COUNT", // Http request retries, default is 5
+ *                           "CUSTOM_DATA", "OperatorService"  // Will replace cd from WebInitiator
+ *                           "CUSTOM_DATA_PREFIX", "Operator " // Will be added before cd from WI
+ *                           "CUSTOM_DATA_SUFFIX", " Operator" // Will be added after cd from WI
+ * @param[in] callbackHandler The implementation of the callback interface provided by the client.
+ * @return               SessionId or 0 if file input parameters is null.
+ */
+long renewRightsExt(in Bundle renewData, in Bundle parameters,
+        IDrmLicenseServiceCallback callbackHandler);
+
+/**
  * Set the callback handler.
- * If service connection is broken before the request is completed, the application must
- * bind again to the service and call this function in order for the request to start again.
+ * If service connection is broken before the request is completed, the application can
+ * bind again to the service and call this function in order to reconnect callback handler.
  * The service can be shutdown by android if there is low memory even though there are
  * connections open to the service.
  *

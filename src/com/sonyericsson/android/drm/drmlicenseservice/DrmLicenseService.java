@@ -19,6 +19,8 @@
  * Sony Ericsson Mobile Communications AB.
  * Portions created by Sony Mobile Communications AB are Copyright (C) 2012
  * Sony Mobile Communications AB. All Rights Reserved.
+ * Portions created by Sony Mobile Communications Inc. are Copyright (C) 2014
+ * Sony Mobile Communications Inc. All Rights Reserved.
  *
  * Contributor(s):
  *
@@ -26,28 +28,13 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
-import com.sonyericsson.android.drm.drmlicenseservice.jobs.DrmFeedbackJob;
-import com.sonyericsson.android.drm.drmlicenseservice.jobs.RenewRightsJob;
-import com.sonyericsson.android.drm.drmlicenseservice.jobs.WebInitiatorJob;
-import com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseService;
-import com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseServiceCallback;
-
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.drm.DrmErrorEvent;
-import android.drm.DrmInfoEvent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.os.RemoteException;
-import android.util.Log;
 import android.widget.Toast;
-
-import java.util.HashMap;
 
 /**
  * Service for handling license renewal. Handles two intent actions - renew and
@@ -55,69 +42,30 @@ import java.util.HashMap;
  */
 public class DrmLicenseService extends Service {
 
-    private Context mContext = null;
-
-    private HashMap<Long, JobManager> mJobs = new HashMap<Long, JobManager>();
-
-    private DrmJobDatabase jobDb = null;
-
     @Override
     public void onCreate() {
         super.onCreate();
-        mContext = getBaseContext();
-        synchronized (this) {
-            if (jobDb == null) {
-                jobDb = DrmJobDatabase.getInstance(this);
-            }
-
-            if (jobDb == null) {
-                stopSelf();
-            }
-        }
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
     }
 
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
-        synchronized (DrmLicenseService.this) {
-            String intentAction = null;
-            if (intent != null) {
-                intentAction = intent.getAction();
-                if (Constants.DEBUG) {
-                    Log.d(Constants.LOGTAG, "Starting command " + intent);
-                }
-
-                if (intentAction == null) {
-                    Log.e(Constants.LOGTAG, "intentAction is null");
-                    ServiceUtility.sendOnInfoResult(this,
-                            DrmErrorEvent.TYPE_RIGHTS_NOT_INSTALLED, null);
-                } else {
-                    if (intentAction.equals(Constants.INTENT_ACTION_DRM_SERVICE_RENEW)) {
-                        renewRights(intent);
-                    } else if (intentAction
-                            .equals(Constants.INTENT_ACTION_DRM_SERVICE_HANDLE_WEB_INITIATOR)) {
-                        handleWebInitiator(intent);
-                    } else if (intentAction.equals(DrmLicenseActivity.class.getName())) {
-                        // DrmLicenseActivity is calling for renewal of rights
-                        String type = intent.getType();
-                        if (type != null
-                                && type.equalsIgnoreCase(Constants.DRM_DLS_INITIATOR_MIME)) {
-                            handleWebInitiator(intent);
-                        }
-                    } else if (intentAction.equals(Intent.ACTION_BOOT_COMPLETED)) {
-                        jobDb.purgeDatabase();
-                        if (Constants.DEBUG) {
-                            Log.d(Constants.LOGTAG, "Job database is purged");
-                        }
-                        stopSelf();
-                    }
+        String intentAction;
+        if (intent != null && (intentAction = intent.getAction()) != null) {
+            if (intentAction.equals(Constants.INTENT_ACTION_DRM_SERVICE_RENEW)) {
+                renewRights(intent);
+            } else if (intentAction
+                    .equals(Constants.INTENT_ACTION_DRM_SERVICE_HANDLE_WEB_INITIATOR)) {
+                handleWebInitiator(intent);
+            } else if (intentAction.equals(DrmLicenseActivity.class.getName())) {
+                // DrmLicenseActivity is calling for renewal of rights
+                String type = intent.getType();
+                if (type != null &&
+                        type.equalsIgnoreCase(Constants.DRM_DLS_INITIATOR_MIME)) {
+                    handleWebInitiator(intent);
                 }
             } else {
-                if (Constants.DEBUG) {
-                    Log.e(Constants.LOGTAG, "Action is not supported");
-                }
-                ServiceUtility.sendOnInfoResult(this,
-                        DrmErrorEvent.TYPE_NOT_SUPPORTED, null);
+                DrmLog.debug("Action is not supported");
             }
         }
         return Service.START_NOT_STICKY;
@@ -125,83 +73,43 @@ public class DrmLicenseService extends Service {
 
     @Override
     public void onDestroy() {
+        SessionManager.getInstance().clearDeadObjects();
         super.onDestroy();
-
-        if (Constants.DEBUG) {
-            Log.d(Constants.LOGTAG, "Service stopped and destroyed");
-        }
+        DrmLog.debug("Service stopped and destroyed");
     }
 
     private void renewRights(final Intent intent) {
-        final Uri fileUri = intent.getData();
-        if (fileUri != null && !fileUri.equals(Uri.EMPTY)) {
-            final String filePath = fileUri.getEncodedPath();
-
-            final Handler jobManagerDoneHandler = new Handler() {
-                @Override
-                public void handleMessage(Message msg) {
-                    if (Constants.DEBUG) {
-                        if (msg != null && msg.obj != null) {
-                            Log.d(Constants.LOGTAG,
-                                    "JobManager is done!  Result was: " + msg.obj.toString());
-                        } else {
-                            Log.d(Constants.LOGTAG, "JobManager is done!  Result was null");
-
-                        }
-                    }
-                }
-            };
-
-            ServiceUtility.sendOnInfoResult(
-                    this, DrmInfoEvent.TYPE_WAIT_FOR_RIGHTS, filePath);
-
-            final Context fContext = this;
-            new Thread() {
-                public void run() {
-                    super.run();
-                    JobManager jm = new JobManager(fContext, jobManagerDoneHandler, 0, jobDb);
-                    jm.pushJob(new RenewRightsJob(fileUri));
-                    jm.start();
-                }
-            }.start();
-        } else {
-            ServiceUtility.sendOnInfoResult(this, DrmErrorEvent.TYPE_RIGHTS_NOT_INSTALLED, null);
+        byte[] psshBox = intent.getByteArrayExtra(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX);
+        String header = intent.getStringExtra(Constants.DRM_KEYPARAM_RENEW_HEADER);
+        final Uri uri = intent.getData();
+        if (header != null || psshBox != null || uri != null) {
+            Intent serviceintent = new Intent(Constants.TASK_SERVICE);
+            serviceintent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
+                    RequestManager.TYPE_RENEW_RIGHTS);
+            if (header != null) {
+                serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_HEADER, header);
+            } else if (psshBox != null) {
+                serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX, psshBox);
+            } else {
+                serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_FILE_URI, uri.toString());
+            }
+            serviceintent.setClass(this, DrmLicenseTaskService.class);
+            startService(serviceintent);
         }
     }
 
     private void handleWebInitiator(final Intent intent) {
         final Uri uri = intent.getData();
         String mime = intent.getType();
-        final Handler jobManagerDoneHandler = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                if (Constants.DEBUG) {
-                    if (msg != null && msg.obj != null) {
-                        Log.d(Constants.LOGTAG,
-                                "JobManager is done!  Result was: " + msg.obj.toString());
-                    } else {
-                        Log.d(Constants.LOGTAG, "JobManager is done!  Result was null");
-                    }
-                }
-            }
-        };
-
-        if (mime != null && mime.equals("application/vnd.ms-playready.initiator+xml")) {
+        if (mime != null && mime.equals(Constants.DRM_DLS_INITIATOR_MIME)) {
             if (uri != null && uri.getScheme() != null) {
-                final Context fContext = this;
-                new Thread() {
-                    public void run() {
-                        super.run();
-                        JobManager jm = new JobManager(fContext, jobManagerDoneHandler, 0, jobDb);
-                        jm.pushJob(new WebInitiatorJob(uri));
-                        jm.start();
-                    }
-                }.start();
-
-                // Create a toast that is shown when WebInitiator link was tapped by user
-                // in Browser, or when a downloaded WI was tapped in notification bar.
+                intent.setAction(Constants.TASK_SERVICE);
+                intent.putExtra(Constants.DLS_INTENT_TYPE,
+                        Constants.DLS_INTENT_TYPE_WEBI);
+                intent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                getBaseContext().startService(intent);
                 int resId = R.string.status_start_download;
-                Toast.makeText(fContext, resId, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -215,122 +123,95 @@ public class DrmLicenseService extends Service {
     private final IDrmLicenseService.Stub mBinder = new IDrmLicenseService.Stub() {
         public long handleWebInitiator(Uri uri, Bundle parameters,
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
-            if (uri == null) {
-                return 0;
+            long sessionId = 0;
+            if (uri != null) {
+                sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
+                Intent serviceintent = new Intent(Constants.TASK_SERVICE);
+                serviceintent.setData(uri);
+                serviceintent.putExtra(Constants.DLS_INTENT_SESSION_ID, sessionId);
+                serviceintent.putExtra(Constants.DLS_INTENT_TYPE, Constants.DLS_INTENT_TYPE_WEBI);
+                serviceintent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                startService(serviceintent);
             }
-            JobManager jm = new JobManager(
-                    mContext, null, parameters, callbackHandler, 0, jobDb);
-            jm.pushJob(new DrmFeedbackJob(Constants.PROGRESS_TYPE_FINISHED_WEBINI));
-            jm.pushJob(new WebInitiatorJob(uri));
-            synchronized (mJobs) {
-                mJobs.put(Long.valueOf(jm.getSessionId()), jm);
-            }
-            jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
-                @Override
-                void isDone(long sessionId) {
-                    synchronized (mJobs) {
-                        mJobs.remove(sessionId);
-                    }
-                }
-            });
-            jm.start();
-            return jm.getSessionId();
+            return sessionId;
         }
 
-        public long renewRights(Uri fileUri, Bundle parameters,
+        public long renewRights(Uri uri, Bundle parameters,
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
-            if (fileUri == null) {
-                return 0;
+            long sessionId = 0;
+            if (uri != null) {
+                sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
+                Intent serviceintent = new Intent(Constants.TASK_SERVICE);
+                serviceintent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
+                        RequestManager.TYPE_RENEW_RIGHTS);
+                serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_FILE_URI, uri.toString());
+                serviceintent.putExtra(Constants.DLS_INTENT_SESSION_ID, sessionId);
+
+                Bundle callbackParameters = new Bundle();
+                callbackParameters.putInt(Constants.DLS_CB_PROGRESS_TYPE,
+                        Constants.PROGRESS_TYPE_RENEW_RIGHTS);
+                callbackParameters.putString(Constants.DLS_CB_PATH, uri.toString());
+
+                serviceintent.putExtra(Constants.DLS_INTENT_CB_PARAMS, callbackParameters);
+                serviceintent.putExtra(Constants.DLS_INTENT_HTTP_PARAMS, parameters);
+                serviceintent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                startService(serviceintent);
             }
-            JobManager jm = new JobManager(
-                    mContext, null, parameters, callbackHandler, 0, jobDb);
-            jm.pushJob(new RenewRightsJob(fileUri));
-            synchronized (mJobs) {
-                mJobs.put(Long.valueOf(jm.getSessionId()), jm);
-            }
-            jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
-                @Override
-                void isDone(long sessionId) {
-                    synchronized (mJobs) {
-                        mJobs.remove(sessionId);
-                    }
-                }
-            });
-            jm.start();
-            return jm.getSessionId();
+            return sessionId;
         }
 
-        public boolean setCallbackListener(
-                IDrmLicenseServiceCallback callbackHandler, final long sessionId, Bundle parameters)
-                throws RemoteException {
-            boolean isOk = false;
-            if (callbackHandler != null && sessionId != 0) {
-                final JobManager jm = new JobManager(mContext, null, parameters, callbackHandler, 0,
-                        jobDb);
-                jm.mSessionId = sessionId;
-                jm.restoreState();
-                jm.registerOnFinishCallback(jm.new JobManagerFinishCallback() {
-                    @Override
-                    void isDone(long sessionId) {
-                        synchronized (mJobs) {
-                            mJobs.remove(sessionId);
-                        }
+        @Override
+        public long renewRightsExt(Bundle renewData, Bundle parameters,
+                IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
+            long sessionId = 0;
+            if (renewData != null) {
+
+                byte[] psshBox = renewData.getByteArray(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX);
+                String header = renewData.getString(Constants.DRM_KEYPARAM_RENEW_HEADER);
+                String filePath = renewData.getString(Constants.DRM_KEYPARAM_RENEW_FILE_PATH);
+
+                if (header != null || psshBox != null || filePath != null) {
+                    sessionId = SessionManager.getInstance().startSession(callbackHandler,
+                            parameters);
+                    Intent serviceintent = new Intent(Constants.TASK_SERVICE);
+                    serviceintent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
+                            RequestManager.TYPE_RENEW_RIGHTS);
+                    serviceintent.putExtra(Constants.DLS_INTENT_SESSION_ID, sessionId);
+
+                    Bundle callbackParameters = new Bundle();
+                    callbackParameters.putInt(Constants.DLS_CB_PROGRESS_TYPE,
+                            Constants.PROGRESS_TYPE_RENEW_RIGHTS);
+                    if (header != null) {
+                        serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_HEADER, header);
+                        callbackParameters.putString(Constants.DRM_KEYPARAM_RENEW_HEADER, header);
+                    } else if (psshBox != null) {
+                        serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX, psshBox);
+                        callbackParameters.putByteArray(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX,
+                                psshBox);
+                    } else {
+                        serviceintent.putExtra(Constants.DRM_KEYPARAM_RENEW_FILE_URI, filePath);
+                        callbackParameters.putString(Constants.DLS_CB_PATH, filePath);
                     }
-                });
-
-                Looper.prepare();
-
-                class StatusHandler extends Handler {
-                    public boolean jobAreBeingAdded = false;
+                    serviceintent.putExtra(Constants.DLS_INTENT_CB_PARAMS, callbackParameters);
+                    serviceintent.putExtra(Constants.DLS_INTENT_HTTP_PARAMS, parameters);
+                    serviceintent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                    startService(serviceintent);
                 }
-
-                final StatusHandler statusHandler = new StatusHandler() {
-                    @Override
-                    public void handleMessage(Message msg) {
-                        jobAreBeingAdded = Boolean.parseBoolean(msg.obj.toString());
-                        getLooper().quit();
-                    }
-                };
-                new Thread () {
-                    public void run() {
-                        if (readInStoredJobs(jm, sessionId, statusHandler)) {
-                            synchronized (mJobs) {
-                                mJobs.put(Long.valueOf(jm.getSessionId()), jm);
-                            }
-                            jm.start();
-                        }
-                    }
-                }.start();
-                Looper.loop();
-                isOk = statusHandler.jobAreBeingAdded;
             }
-            return isOk;
+            return sessionId;
         }
 
+        @Override
+        public boolean setCallbackListener(IDrmLicenseServiceCallback callbackHandler,
+                long sessionId, Bundle parameters) throws RemoteException {
+            return SessionManager.getInstance().connectToSession(sessionId, callbackHandler,
+                    parameters);
+        }
+
+        @Override
         public boolean cancelSession(long sessionId) throws RemoteException {
-            JobManager jm;
-            synchronized (mJobs) {
-                jm = mJobs.get(Long.valueOf(sessionId));
-            }
-            if (jm != null) {
-                jm.prepareCancel();
-                return true;
-            }
-            return false;
+            return SessionManager.getInstance().cancel(sessionId);
         }
-
     };
 
-    private boolean readInStoredJobs(final JobManager jm, final long sessionId,
-            Handler statusHandler) {
-        boolean jobsAdded = false;
-        if (jm != null) {
-            if (jobDb.addDatabaseJobsToStack(jm, sessionId, statusHandler) > 0 ) {
-                Log.d(Constants.LOGTAG,
-                "Starting to work on the non-finished tasks found in database");
-                jobsAdded = true;
-            }
-        }
-        return jobsAdded;
-    }
 }
