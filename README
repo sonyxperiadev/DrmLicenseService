@@ -1,5 +1,8 @@
 The purpose of the DrmLicenseService is to provide an easy way of getting DRM licenses for different DRM solutions.
 
+Master branch holds solution for MediaDrm framework, prefered solution for devices released on L cookie.
+For opendrmframework use alternative branches.
+
 DrmLicenseService will perform all communication with server to acquire license and may, depending on the way it is started, provide progress information.
 
 Ways to start DrmLicenseService:
@@ -13,6 +16,6 @@ Ways to start DrmLicenseService:
 3. Send RenewRights intent for a file to acquire new rights.
 
 If you find any information to be incorrect or if you have any questions, feel free to contact:
+   * Per3 Bengtsson
    * Daniel Broms
-   * Pravat Dalbehera
    (firstname.lastname@sonymobile.com)
