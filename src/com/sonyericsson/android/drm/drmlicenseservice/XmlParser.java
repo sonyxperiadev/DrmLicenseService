@@ -59,7 +59,7 @@ public class XmlParser {
                         break;
                     case XmlPullParser.END_TAG:
                         if (tagBuffer != null) {
-                            res.put(xpp.getName(), tagBuffer.toString());
+                            res.put(xpp.getName(), tagBuffer.toString().trim());
                             tagBuffer = null;
                         }
                         break;
@@ -131,13 +131,13 @@ public class XmlParser {
                         break;
                     case XmlPullParser.END_TAG:
                         if (tagBuffer != null && item != null) {
-                            item.put(xpp.getName(), tagBuffer.toString());
+                            item.put(xpp.getName(), tagBuffer.toString().trim());
                             tagBuffer = null;
                         }
                         if ("Header".equals(xpp.getName())) {
                             // Apply XML character-entity encoding to previously unescaped '&'
                             item.put("Header", headerBuffer.toString().replaceAll("&(?!amp;)",
-                                    "&amp;"));
+                                    "&amp;").trim());
                             headerBuffer = null;
                         } else if (headerBuffer != null) {
                             headerBuffer.append("</").append(xpp.getName()).append(">");

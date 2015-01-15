@@ -110,17 +110,11 @@ public class DLSHttpClient {
 
         public String mRedirect = null;
 
-        public Response(int status, int innerStatus, String mime, ByteArrayBuffer data) {
+        public Response(int status, int innerStatus, String mime, String data) {
             mStatus = status;
             mInnerStatus = innerStatus;
             mMime = mime;
-            if (data != null) {
-                try {
-                    mData = new String(data.toByteArray(), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    DrmLog.logException(e);
-                }
-            }
+            mData = data;
         }
 
         public int getStatus() {
@@ -157,7 +151,7 @@ public class DLSHttpClient {
 
         private RetryCallback mRetryCallback;
 
-        private ByteArrayBuffer mRespData = null;
+        private String mRespData = null;
 
         private String mMimeType = null;
 
@@ -430,22 +424,30 @@ public class DLSHttpClient {
             return abort;
         }
 
-        private ByteArrayBuffer inputStreamToBuffer(InputStream is, String charset) {
-            ByteArrayBuffer bab = new ByteArrayBuffer(4096);
+        private String inputStreamToBuffer(InputStream is, String charset) {
+            String result = null;
+
             try {
                 InputStreamReader isr = new InputStreamReader(is, charset);
                 int len;
                 char[] buf = new char[1024];
+                StringBuffer stringBuffer = new StringBuffer();
                 while ((len = isr.read(buf, 0, 1024)) != -1) {
-                    bab.append(buf, 0, len);
+                    stringBuffer.append(new String(buf, 0 ,len));
+                }
+                // response might start with bytes Byte Order Mark which will cause parsing error
+                // make sure response starts with '<' in case of XML
+                if (stringBuffer.length() > 0) {
+                    result = stringBuffer.toString().trim();
+                    int xmlStart = result.indexOf('<');
+                    if (xmlStart >= 1 && xmlStart < 4) {
+                        result = result.substring(xmlStart, result.length());
+                    }
                 }
             } catch (IOException e) {
-                bab = null;
+                DrmLog.logException(e);
             }
-            if (bab != null && bab.length() == 0) {
-                bab = null;
-            }
-            return bab;
+            return result;
         }
     }
 
@@ -569,7 +571,7 @@ public class DLSHttpClient {
     }
 
     private static void writeDataToFile(String suffix, String data) {
-        if (Constants.DEBUG) {
+        if (Constants.DEBUG && data != null) {
             ByteArrayBuffer bab = new ByteArrayBuffer(data.length());
             try {
                 bab.append(data.getBytes("UTF-8"), 0, data.length());
