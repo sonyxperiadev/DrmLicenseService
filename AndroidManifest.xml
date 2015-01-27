@@ -21,6 +21,9 @@
                 <action android:name="com.sonyericsson.android.drm.drmlicenseservice.IDrmLicenseService" />
             </intent-filter>
         </service>
+        <service android:name="com.sonyericsson.android.drm.drmlicenseservice.WebInitiatorTaskService"
+            android:exported="false">
+        </service>
         <service android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseTaskService"
             android:exported="false">
         </service>

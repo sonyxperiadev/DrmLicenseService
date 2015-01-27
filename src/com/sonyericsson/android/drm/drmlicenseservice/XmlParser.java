@@ -90,11 +90,10 @@ public class XmlParser {
             factory = XmlPullParserFactory.newInstance();
             factory.setNamespaceAware(true);
             XmlPullParser xpp = factory.newPullParser();
-            xpp.setInput(new StringReader(xml));
+            xpp.setInput(new StringReader(xml.trim()));
             int eventType = xpp.getEventType();
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 switch (eventType) {
-
                     case XmlPullParser.START_TAG:
                         if (xpp.getDepth() == 2) {
                             item = new HashMap<String, String>();
@@ -134,7 +133,8 @@ public class XmlParser {
                             item.put(xpp.getName(), tagBuffer.toString().trim());
                             tagBuffer = null;
                         }
-                        if ("Header".equals(xpp.getName())) {
+                        if ("Header".equals(xpp.getName()) && item != null &&
+                                headerBuffer != null) {
                             // Apply XML character-entity encoding to previously unescaped '&'
                             item.put("Header", headerBuffer.toString().replaceAll("&(?!amp;)",
                                     "&amp;").trim());

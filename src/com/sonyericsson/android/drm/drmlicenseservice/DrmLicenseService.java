@@ -103,10 +103,8 @@ public class DrmLicenseService extends Service {
         String mime = intent.getType();
         if (mime != null && mime.equals(Constants.DRM_DLS_INITIATOR_MIME)) {
             if (uri != null && uri.getScheme() != null) {
-                intent.setAction(Constants.TASK_SERVICE);
-                intent.putExtra(Constants.DLS_INTENT_TYPE,
-                        Constants.DLS_INTENT_TYPE_WEBI);
-                intent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                intent.setAction(Constants.WEBI_SERVICE);
+                intent.setClass(getBaseContext(), WebInitiatorTaskService.class);
                 getBaseContext().startService(intent);
                 int resId = R.string.status_start_download;
                 Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
@@ -126,11 +124,10 @@ public class DrmLicenseService extends Service {
             long sessionId = 0;
             if (uri != null) {
                 sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
-                Intent serviceintent = new Intent(Constants.TASK_SERVICE);
+                Intent serviceintent = new Intent(Constants.WEBI_SERVICE);
                 serviceintent.setData(uri);
                 serviceintent.putExtra(Constants.DLS_INTENT_SESSION_ID, sessionId);
-                serviceintent.putExtra(Constants.DLS_INTENT_TYPE, Constants.DLS_INTENT_TYPE_WEBI);
-                serviceintent.setClass(getBaseContext(), DrmLicenseTaskService.class);
+                serviceintent.setClass(getBaseContext(), WebInitiatorTaskService.class);
                 startService(serviceintent);
             }
             return sessionId;

@@ -26,6 +26,7 @@ package com.sonyericsson.android.drm.drmlicenseservice;
 import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.Response;
 import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.RetryCallback;
 
+import android.app.IntentService;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -40,13 +41,13 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 
-public class WebInitiatorManager {
+public class WebInitiatorTaskService extends IntentService {
 
     private Uri mUri = null;
 
     private Context mContext;
 
-    private final long mSessionId;
+    private long mSessionId;
 
     private RetryCallback mRetryCallback;
 
@@ -58,18 +59,23 @@ public class WebInitiatorManager {
             WEBI_LICENSE_ACQUISITION_CONTENT = "Content",
             WEBI_LICENSE_ACQUISITION_HEADER = "Header";
 
-    /**
-     * Creates a WebInitiator Manager, which downloads unless local file, then
-     * parses it and sends Tasks to DrmLicenseTaskService
-     *
-     * @param context service/application context
-     * @param uri towards WebInitiator xml
-     * @param sessionId dls session id
-     */
-    public WebInitiatorManager(Context context, Uri uri, long sessionId) {
-        mUri = uri;
-        mSessionId = sessionId;
-        mContext = context;
+    public WebInitiatorTaskService() {
+        super("WebInitiatorTaskService");
+        setIntentRedelivery(true);
+    }
+
+    @Override
+    protected void onHandleIntent(Intent intent) {
+        DrmLog.debug("onHandleIntent");
+        Bundle extras = intent.getExtras();
+        if (extras != null) {
+            mSessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID,
+                    Constants.NOT_AIDL_SESSION);
+            DrmLog.debug("sessionId " + mSessionId);
+            SessionManager.getInstance().makeSureAIDLSessionIsOpen(mSessionId);
+        }
+        mContext = getBaseContext();
+        mUri = intent.getData();
         mRetryCallback = new RetryCallback() {
 
             @Override
@@ -83,6 +89,7 @@ public class WebInitiatorManager {
             }
 
         };
+        execute();
     }
 
     /**
@@ -112,7 +119,7 @@ public class WebInitiatorManager {
                 // Loop through the parts of the initiator (it may
                 // be multiple parts).
                 int groupId = 0;
-                while (dataAll.size() > 0) {
+                while (dataAll.size() > 0 && !SessionManager.getInstance().isCancelled(mSessionId)) {
                     groupId++;
                     handleInitiatorDataItem(dataAll.removeFirst(), numberOfGroups, groupId);
                 }
@@ -124,7 +131,7 @@ public class WebInitiatorManager {
             httpError = webi.httpError;
             innerHttpError = webi.innerHttpError;
         }
-        if (mSessionId > 0) { // has callback handler
+        if (mSessionId > Constants.NOT_AIDL_SESSION) { // has callback handler
             if (httpError != 0) { // parsing error
                 Bundle parameters = new Bundle();
                 parameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, 0);
@@ -146,7 +153,9 @@ public class WebInitiatorManager {
             mContext.startService(finishedIntent);
         }
 
-        if (status && mUri != null && !new File(mUri.getPath()).delete()) {
+        if (status && mUri != null && (ContentResolver.SCHEME_FILE.equals(mUri.getScheme()) ||
+                ContentResolver.SCHEME_CONTENT.equals(mUri.getScheme())) &&
+                !new File(mUri.getPath()).delete()) {
             DrmLog.debug("Failed to remove executed webinitiator");
         }
     }
@@ -206,8 +215,9 @@ public class WebInitiatorManager {
                     path = mUri.getPath();
                 }
                 if (null != path) {
+                    FileInputStream fis = null;
                     try {
-                        FileInputStream fis = new FileInputStream(path);
+                        fis = new FileInputStream(path);
                         StringBuilder buf = new StringBuilder();
                         while (fis.available() > 0) {
                             byte data[] = new byte[1024];
@@ -215,9 +225,15 @@ public class WebInitiatorManager {
                             buf.append(new String(data, 0, count, "UTF-8"));
                         }
                         respData = buf.toString();
-                        fis.close();
                     } catch (IOException e) {
+                        httpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
                         DrmLog.logException(e);
+                    } finally {
+                        try {
+                            if (fis != null) {
+                                fis.close();
+                            }
+                        } catch (IOException e) {}
                     }
                 } else {
                     httpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
@@ -238,7 +254,7 @@ public class WebInitiatorManager {
         Bundle callbackParameters = new Bundle();
         Intent intent = new Intent(Constants.TASK_SERVICE);
         intent.setClass(mContext, DrmLicenseTaskService.class);
-        intent.putExtra(Constants.DLS_INTENT_TYPE, 0);
+        intent.putExtra(Constants.DLS_INTENT_TYPE, Constants.DLS_INTENT_TYPE_TASK);
         intent.putExtra(Constants.DLS_INTENT_ITEMDATA, data);
         intent.putExtra(Constants.DLS_INTENT_SESSION_ID, mSessionId);
         callbackParameters.putInt(Constants.DRM_KEYPARAM_GROUP_COUNT, numberOfGroups);
@@ -252,7 +268,7 @@ public class WebInitiatorManager {
             if (header != null && header.length() > 0 && kid != null && kid.length() > 0) {
                 if (content != null && content.length() > 0) {
                     callbackParameters.putString(Constants.DLS_CB_PATH, content);
-                    if (mSessionId == 0
+                    if (mSessionId == Constants.NOT_AIDL_SESSION
                             || !SessionManager.getInstance().hasCallbackHandler(mSessionId)) {
                         ContentDownloadManager dlManager = new ContentDownloadManager(mContext,
                                 content, mSessionId);

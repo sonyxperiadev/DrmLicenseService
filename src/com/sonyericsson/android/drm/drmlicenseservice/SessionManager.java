@@ -88,8 +88,8 @@ public class SessionManager {
      * @return session ID
      */
     public long startSession(IDrmLicenseServiceCallback callbackhandler, Bundle parameters) {
-        long sessionId = 0;
-        while (sessionId == 0) {
+        long sessionId = -1;
+        while (sessionId == -1) {
             sessionId = System.currentTimeMillis();
             try {
                 mLock.lock();
@@ -97,12 +97,12 @@ public class SessionManager {
                     mSessions.add(sessionId);
                     map(sessionId, callbackhandler, parameters);
                 } else {
-                    sessionId = 0;
+                    sessionId = -1;
                 }
             } finally {
                 mLock.unlock();
             }
-            if (sessionId == 0) {
+            if (sessionId == -1) {
                 // Since sessionId is bases on system time,
                 // we sleep 1 millis if we happened get an existing sessionId
                 try {
@@ -123,7 +123,7 @@ public class SessionManager {
     public void makeSureAIDLSessionIsOpen(long sessionId) {
         try {
             mLock.lock();
-            if (sessionId != 0 && !mSessions.contains(sessionId)) {
+            if (sessionId > Constants.NOT_AIDL_SESSION && !mSessions.contains(sessionId)) {
                 mSessions.add(sessionId);
             }
         } finally {
@@ -193,10 +193,6 @@ public class SessionManager {
         }
 
         DLSHttpClient.prepareCancel(sessionId);
-
-        if (res) {
-            callback(sessionId, Constants.PROGRESS_TYPE_CANCELLED, true, new Bundle());
-        }
         return res;
     }
 

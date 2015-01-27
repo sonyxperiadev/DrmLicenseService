@@ -156,6 +156,9 @@ public class Constants {
 
     public static final int PROGRESS_TYPE_HTTP_RETRYING = 6;
 
+    protected static final String WEBI_SERVICE =
+            "com.sonyericsson.android.drm.drmlicenseservice.WebInitiatorTaskService";
+
     protected static final String TASK_SERVICE =
             "com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseTaskService";
 
@@ -164,7 +167,6 @@ public class Constants {
     public static final String DLS_INTENT_TYPE = "DLS_INTENT_TYPE";
     public static final int DLS_INTENT_TYPE_TASK = 0;
     public static final int DLS_INTENT_TYPE_FINISHED_WEBI = 1;
-    public static final int DLS_INTENT_TYPE_WEBI = 2;
 
     public static final String DLS_INTENT_SESSION_ID = "dlsSessionId";
     public static final String DLS_INTENT_REQUEST_TYPE = "rtype";
@@ -185,5 +187,7 @@ public class Constants {
     public static final int HTTP_ERROR_INTERNAL_ERROR = -4;
     public static final int HTTP_ERROR_XML_PARSING_ERROR = -5;
     public static final int HTTP_ERROR_UNHANDLED_ERROR_IN_PK = -6;
+    public static final int HTTP_ERROR_CANCELLED = -10; // internal error code for aborted requests
 
+    public static final int NOT_AIDL_SESSION = 0;
 }

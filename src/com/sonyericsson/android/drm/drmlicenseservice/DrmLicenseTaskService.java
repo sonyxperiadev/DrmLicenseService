@@ -54,26 +54,22 @@ public class DrmLicenseTaskService extends IntentService {
         long sessionId = 0;
         int intentType = -1;
         if (extras != null) {
-            sessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID, 0);
+            sessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID, Constants.NOT_AIDL_SESSION);
             intentType = extras.getInt(Constants.DLS_INTENT_TYPE, -1);
 
             SessionManager.getInstance().makeSureAIDLSessionIsOpen(sessionId);
         }
         switch (intentType) {
-            case Constants.DLS_INTENT_TYPE_WEBI:
-                Uri uri = intent.getData();
-                WebInitiatorManager webiManager = new WebInitiatorManager(getBaseContext(), uri,
-                        sessionId);
-                webiManager.execute();
-                break;
             case Constants.DLS_INTENT_TYPE_FINISHED_WEBI:
-                if (sessionId > 0) {
+                if (sessionId > Constants.NOT_AIDL_SESSION) {
                     if (!SessionManager.getInstance().isCancelled(sessionId)) {
                         SessionManager.getInstance().callback(sessionId,
                                 Constants.PROGRESS_TYPE_FINISHED_WEBINI, true, new Bundle());
                     } else {
-                        // When we get DLS_INTENT_TYPE_FINISHED_WEBI for a cancelled session
-                        // we know that it is safe to remove it from cancelled list
+                        // Notify that session cancel is now complete.
+                        SessionManager.getInstance().callback(sessionId,
+                                Constants.PROGRESS_TYPE_CANCELLED, true, new Bundle());
+                        // it's now safe to remove it from cancelled list
                         SessionManager.getInstance().clearCancelled(sessionId);
                     }
                 }

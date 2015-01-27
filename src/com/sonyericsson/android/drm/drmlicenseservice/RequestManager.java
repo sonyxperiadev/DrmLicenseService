@@ -106,12 +106,14 @@ public class RequestManager {
         mCallback = callback;
         mContext = context;
         try {
-            mMediaDrm = new MediaDrm(Constants.UUID_PR);
-            mSessionId = mMediaDrm.openSession();
             mTasks = new Stack<Task>();
             if (parameters != null) {
                 mOriginalType = parameters.getInt(Constants.DLS_INTENT_REQUEST_TYPE, -1);
                 mTasks.add(new Task(parameters));
+                if (!SessionManager.getInstance().isCancelled(mTasks.peek().mDlsSessionId)) {
+                    mMediaDrm = new MediaDrm(Constants.UUID_PR);
+                    mSessionId = mMediaDrm.openSession();
+                }
             } else {
                 DrmLog.debug("Error request parameters is null");
             }
@@ -124,12 +126,10 @@ public class RequestManager {
      * Trigger request
      */
     public void execute() {
-        boolean taskWasCancelled = false;
         Task currentTask = null;
         while (!mTasks.isEmpty()) {
             currentTask = mTasks.pop();
-            if (isOk && !(taskWasCancelled =
-                    SessionManager.getInstance().isCancelled(currentTask.mDlsSessionId))) {
+            if (isOk && !SessionManager.getInstance().isCancelled(currentTask.mDlsSessionId)) {
                 isOk = false;
                 KeyRequest keyRequest = prepareRequest(currentTask);
                 processKeyRequest(keyRequest, currentTask);
@@ -137,11 +137,15 @@ public class RequestManager {
             }
         }
 
-        // Cancelled renewRights sessions are now safe to be cleared from list.
         // NOTE, We only check for renewRights calls here since WebInitiators
         // can contain several task so they are only safe to clear when
         // DLS_INTENT_TYPE_FINISHED_WEBI are processed in TaskService
-        if (mOriginalType == TYPE_RENEW_RIGHTS && taskWasCancelled) {
+        if (mOriginalType == TYPE_RENEW_RIGHTS &&
+                SessionManager.getInstance().isCancelled(currentTask.mDlsSessionId)) {
+            // Notify that session cancel is now complete.
+            SessionManager.getInstance().callback(currentTask.mDlsSessionId,
+                    Constants.PROGRESS_TYPE_CANCELLED, true, new Bundle());
+            // Cancelled renewRights sessions are now safe to be cleared from list.
             SessionManager.getInstance().clearCancelled(currentTask.mDlsSessionId);
         }
 
@@ -322,7 +326,7 @@ public class RequestManager {
         if (task.mLuiUrl == null) {
             task.parseForLuiUrl();
         }
-        if (task.mDlsSessionId != 0 &&
+        if (task.mDlsSessionId > Constants.NOT_AIDL_SESSION &&
                 SessionManager.getInstance().hasCallbackHandler(task.mDlsSessionId)) {
             if (task.mLuiUrl != null && task.mRedirectURL == null) {
                 task.mRedirectURL = task.mLuiUrl;
@@ -364,18 +368,18 @@ public class RequestManager {
                         String errorCode = errorData.get(STATUS_CODE);
                         String redirectUrl = errorData.get(REDIRECT_URL);
                         if (currentTask.type == TYPE_ACQUIRE_LICENSE) {
-                            if ((errorCode.equals(ERROR_DOMAIN_REQUIRED) || errorCode
-                                    .equals(ERROR_RENEW_DOMAIN))) {
+                            if ((ERROR_DOMAIN_REQUIRED.equals(errorCode) ||
+                                    ERROR_RENEW_DOMAIN.equals(errorCode))) {
                                 if (!currentTask.triedJoinDomain) {
                                     currentTask.triedJoinDomain = true;
                                     currentTask.lastType = -1; // reset task
                                     mTasks.add(currentTask);
                                     Task joinDomainTask = currentTask.deriveDomainJob(
-                                            errorCode.equals(ERROR_RENEW_DOMAIN), errorData);
+                                            ERROR_RENEW_DOMAIN.equals(errorCode), errorData);
                                     mTasks.add(joinDomainTask);
                                     isOk = true;
                                 }
-                            } else if (errorCode.equals(ERROR_SERVER_SPECIFIC)) {
+                            } else if (ERROR_SERVER_SPECIFIC.equals(errorCode)) {
                                 tryRedirect(currentTask);
                             }
                         }
@@ -383,7 +387,9 @@ public class RequestManager {
                             // only add error codes if error is not related to domain,
                             // or if we already tried JoinDomain
                             currentTask.mHttpError = httpResponse.getStatus();
-                            currentTask.mInnerHttpError = Long.decode(errorCode).intValue();
+                            if (errorCode != null) {
+                                currentTask.mInnerHttpError = Long.decode(errorCode).intValue();
+                            }
                             if (redirectUrl != null && redirectUrl.length() > 0) {
                                 currentTask.mRedirectURL = redirectUrl;
                             }
@@ -428,6 +434,9 @@ public class RequestManager {
             }
         } else {
             DrmLog.debug("no response from DLSHttpClient");
+            if (SessionManager.getInstance().isCancelled(currentTask.mDlsSessionId)) {
+                currentTask.mHttpError = Constants.HTTP_ERROR_CANCELLED;
+            }
         }
         DrmLog.debug("processHttpResponse end " + currentTask.mHttpError + "  " +
                 currentTask.mInnerHttpError);
@@ -468,7 +477,8 @@ public class RequestManager {
 
         private Task(Bundle taskParams) {
             this.type = taskParams.getInt(Constants.DLS_INTENT_REQUEST_TYPE, -1);
-            this.mDlsSessionId = taskParams.getLong(Constants.DLS_INTENT_SESSION_ID, 0);
+            this.mDlsSessionId = taskParams.getLong(Constants.DLS_INTENT_SESSION_ID,
+                    Constants.NOT_AIDL_SESSION);
             this.mCallbackParameters = taskParams.getBundle(Constants.DLS_INTENT_CB_PARAMS);
 
             @SuppressWarnings("unchecked")
@@ -532,7 +542,7 @@ public class RequestManager {
 
                 @Override
                 public void retryingUrl(int httpError, int innerHttpError, String url) {
-                    if (fSessionId > 0) {
+                    if (fSessionId > Constants.NOT_AIDL_SESSION) {
                         Bundle parameters = (mCallbackParameters == null) ? new Bundle()
                                 : (Bundle)mCallbackParameters.clone();
                         parameters.putString(Constants.DRM_KEYPARAM_URL, url);
@@ -645,7 +655,8 @@ public class RequestManager {
             }
 
             // Only tasks with sessionIDs greater than 0 have callbackReceivers
-            if (mDlsSessionId > 0) {
+            if (mDlsSessionId > Constants.NOT_AIDL_SESSION &&
+                    mHttpError != Constants.HTTP_ERROR_CANCELLED) {
                 if (mCallbackParameters == null) {
                     mCallbackParameters = new Bundle();
                 }
