@@ -601,6 +601,7 @@ public class RequestManager {
          */
         private String getCustomData() {
             StringBuilder buffer = new StringBuilder();
+            String res = null;
             String customDataFromParams = this.getParam(Constants.DRM_KEYPARAM_CUSTOM_DATA);
             if (customDataFromParams != null) {
                 String tmp = this.getParam(Constants.DRM_KEYPARAM_CUSTOM_DATA_PREFIX);
@@ -613,9 +614,14 @@ public class RequestManager {
                     buffer.append(tmp);
                 }
             } else {
-                buffer.append(mParsedCustomData);
+                if(mParsedCustomData != null){
+                    buffer.append(mParsedCustomData);
+                }
             }
-            return buffer.toString();
+            if(buffer.length() > 0){
+                res = buffer.toString();
+            }
+            return res;
         }
 
         private void parseErrorData(boolean renew, HashMap<String, String> errorData) {

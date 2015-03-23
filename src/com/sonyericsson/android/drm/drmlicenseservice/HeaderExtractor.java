@@ -193,7 +193,11 @@ public class HeaderExtractor {
     public static void parsePSSH(byte[] pssh, RequestManager.Task task) {
         try {
             task.mHeader = DrmPiffParser.getPlayReadyHeader(pssh);
+            if (task.mHeader == null) {
+                task.mHttpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
+            }
         } catch (Exception e) {
+            task.mHttpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
             DrmLog.logException(e);
         }
     }
