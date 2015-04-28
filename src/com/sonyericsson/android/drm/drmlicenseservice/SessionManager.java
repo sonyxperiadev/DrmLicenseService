@@ -192,7 +192,7 @@ public class SessionManager {
             mLock.unlock();
         }
 
-        DLSHttpClient.prepareCancel(sessionId);
+        UrlConnectionClient.prepareCancel(sessionId);
         return res;
     }
 

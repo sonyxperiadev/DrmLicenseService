@@ -23,8 +23,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
-import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.Response;
-import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.RetryCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.RetryCallback;
 
 import android.app.IntentService;
 import android.content.ContentResolver;
@@ -167,8 +167,8 @@ public class WebInitiatorTaskService extends IntentService {
             String host;
             if (("http".equals(mUri.getScheme()) || "https".equals(mUri.getScheme())) &&
                     ((host = mUri.getHost()) != null) && host.length() > 0) {
-                Response response = DLSHttpClient.get(mContext, mSessionId, mUri.toString(),
-                        mRetryCallback);
+                Response response = UrlConnectionClient.get(mContext, mSessionId, mUri.toString(),
+                        null, null,mRetryCallback);
 
                 if (response != null && response.getStatus() == 200) {
                     respData = response.getData();

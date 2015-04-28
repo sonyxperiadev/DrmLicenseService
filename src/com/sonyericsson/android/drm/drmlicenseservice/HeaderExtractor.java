@@ -23,7 +23,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
-import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.DataHandlerCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.DataHandlerCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
 import com.sonyericsson.android.drm.drmlicenseservice.parser.DrmPiffParser;
 
 import android.annotation.SuppressLint;
@@ -59,7 +60,7 @@ public class HeaderExtractor {
             if (tempFile != null) {
                 final boolean manifest = fileUri.toLowerCase(Locale.US).endsWith(".ism/manifest");
                 final String callbackFile = tempFile;
-                DataHandlerCallback callback = new DataHandlerCallback() {
+                DataHandlerCallback dataCallback = new DataHandlerCallback() {
 
                     @SuppressLint("WorldReadableFiles")
                     public void handleData(InputStream is) {
@@ -117,8 +118,8 @@ public class HeaderExtractor {
 
                 };
 
-                DLSHttpClient.Response response = DLSHttpClient.get(context,
-                        task.mDlsSessionId, uri.toString(), callback, null);
+                Response response = UrlConnectionClient.get(context,
+                        task.mDlsSessionId, uri.toString(), null, dataCallback, null);
 
                 if (response == null) {
                     task.mHttpError = Constants.HTTP_ERROR_INTERNAL_ERROR;

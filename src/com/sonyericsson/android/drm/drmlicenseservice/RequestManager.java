@@ -29,7 +29,8 @@ import android.media.MediaDrm;
 import android.media.MediaDrm.KeyRequest;
 import android.os.Bundle;
 
-import com.sonyericsson.android.drm.drmlicenseservice.DLSHttpClient.RetryCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.RetryCallback;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -151,6 +152,7 @@ public class RequestManager {
 
         if (mMediaDrm != null && mSessionId != null) {
             mMediaDrm.closeSession(mSessionId);
+            mMediaDrm.release();
         }
     }
 
@@ -283,8 +285,8 @@ public class RequestManager {
                         String url = currentTask.mUrlUsed;
                         DrmLog.debug("Not done, execute post, towards: " + url);
                         processHttpResponse(
-                                DLSHttpClient.post(mContext, currentTask.mDlsSessionId, url,
-                                        getType(currentTask.type), dataString,
+                                UrlConnectionClient.post(mContext, currentTask.mDlsSessionId, url,
+                                        getType(currentTask.type), dataString, null,
                                         currentTask.retryCallback,
                                         currentTask.type == TYPE_ACQUIRE_LICENSE), currentTask);
                     }
@@ -340,7 +342,7 @@ public class RequestManager {
         }
     }
 
-    private void processHttpResponse(DLSHttpClient.Response httpResponse, Task currentTask) {
+    private void processHttpResponse(Response httpResponse, Task currentTask) {
         DrmLog.debug("processHttpResponse");
         if (httpResponse != null) {
             switch (httpResponse.getStatus()) {
