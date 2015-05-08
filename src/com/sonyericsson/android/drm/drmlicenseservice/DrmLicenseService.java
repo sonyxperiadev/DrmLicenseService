@@ -30,6 +30,7 @@ package com.sonyericsson.android.drm.drmlicenseservice;
 
 import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
 
+import android.app.job.JobScheduler;
 import android.app.Service;
 import android.content.Intent;
 import android.net.Uri;
@@ -77,6 +78,7 @@ public class DrmLicenseService extends Service {
     public void onDestroy() {
         SessionManager.getInstance().clearDeadObjects();
         super.onDestroy();
+        GarbageJobService.ScheduleGarbageCollection(this);
         DrmLog.debug("Service stopped and destroyed");
     }
 

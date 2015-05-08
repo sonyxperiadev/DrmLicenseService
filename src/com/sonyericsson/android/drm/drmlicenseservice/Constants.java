@@ -190,4 +190,6 @@ public class Constants {
     public static final int HTTP_ERROR_CANCELLED = -10; // internal error code for aborted requests
 
     public static final int NOT_AIDL_SESSION = 0;
+
+    protected static final long GARBAGE_COLLECT_INTERVAL = 604800; // one week in seconds
 }
