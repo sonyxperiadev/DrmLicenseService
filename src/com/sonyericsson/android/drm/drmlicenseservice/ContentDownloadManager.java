@@ -23,6 +23,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
+
 import android.app.DownloadManager;
 import android.app.DownloadManager.Request;
 import android.app.Notification;

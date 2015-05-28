@@ -25,6 +25,7 @@ package com.sonyericsson.android.drm.drmlicenseservice;
 
 import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
 import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.RetryCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.utils.*;
 
 import android.app.IntentService;
 import android.content.ContentResolver;
@@ -101,7 +102,7 @@ public class WebInitiatorTaskService extends IntentService {
         int innerHttpError = 0;
 
         WebinitiatorData webi = getWebinitiator();
-        int dataLength = (webi.data != null) ? webi.data.length() : 0;
+        int dataLength = (webi.data != null) ? webi.data.length : 0;
         if (dataLength > 0) {
             ArrayDeque<HashMap<String, String>> dataAll = XmlParser.parseWebInitiator(webi.data);
             if (dataAll != null) {
@@ -161,7 +162,7 @@ public class WebInitiatorTaskService extends IntentService {
     }
 
     private WebinitiatorData getWebinitiator() {
-        String respData = null;
+        byte[] respData = null;
         int httpError = 0, innerHttpError = 0;
         if (mUri != null) {
             String host;
@@ -172,7 +173,7 @@ public class WebInitiatorTaskService extends IntentService {
 
                 if (response != null && response.getStatus() == 200) {
                     respData = response.getData();
-                    if (respData == null || respData.length() == 0) {
+                    if (respData == null || respData.length == 0) {
                         DrmLog.debug("Request to " + mUri.toString() + " did not return any data.");
                         httpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
                     }
@@ -218,13 +219,13 @@ public class WebInitiatorTaskService extends IntentService {
                     FileInputStream fis = null;
                     try {
                         fis = new FileInputStream(path);
-                        StringBuilder buf = new StringBuilder();
-                        while (fis.available() > 0) {
-                            byte data[] = new byte[1024];
-                            int count = fis.read(data);
-                            buf.append(new String(data, 0, count, "UTF-8"));
+                        ByteArrayBuffer data = new ByteArrayBuffer(10000);
+                        byte buffer[] = new byte[1024];
+                        int read = 0;
+                        while ((read = fis.read(buffer, 0, buffer.length)) > 0) {
+                            data.append(buffer, 0, read);
                         }
-                        respData = buf.toString();
+                        respData = data.toByteArray();
                     } catch (IOException e) {
                         httpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
                         DrmLog.logException(e);
@@ -303,11 +304,11 @@ public class WebInitiatorTaskService extends IntentService {
     }
 
     private static class WebinitiatorData {
-        String data = null;
+        byte[] data = null;
         int httpError = 0;
         int innerHttpError = 0;
 
-        private WebinitiatorData (String respData, int error, int innerError) {
+        private WebinitiatorData (byte[] respData, int error, int innerError) {
             data = respData;
             httpError = error;
             innerHttpError = innerError;

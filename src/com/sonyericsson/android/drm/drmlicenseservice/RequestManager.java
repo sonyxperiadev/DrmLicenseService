@@ -23,15 +23,16 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
+import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.RetryCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.utils.*;
 
 import android.content.Context;
 import android.media.MediaDrm;
 import android.media.MediaDrm.KeyRequest;
 import android.os.Bundle;
-
-import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
-import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.RetryCallback;
-
+import java.io.InputStreamReader;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Stack;
@@ -165,7 +166,7 @@ public class RequestManager {
         String customData;
         switch (task.type) {
             case TYPE_ACKNOWLEDGE_LICENSE:
-                request.put(Constants.DRM_DATA, task.mLastHttpResponseData);
+                request.put(Constants.DRM_DATA, task.getLastHttpResponseString());
                 request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_LIC_RESPONSE);
                 break;
             case TYPE_ACQUIRE_LICENSE:
@@ -217,16 +218,16 @@ public class RequestManager {
                         Constants.DRM_ACTION_GENERATE_LEAVE_DOM_CHALLENGE);
                 break;
             case PROCESS_TYPE_JOIN_DOMAIN:
-                request.put(Constants.DRM_DATA, task.mLastHttpResponseData);
+                request.put(Constants.DRM_DATA, task.getLastHttpResponseString());
                 request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_JOIN_DOM_RESPONSE);
                 break;
             case PROCESS_TYPE_LEAVE_DOMAIN:
-                request.put(Constants.DRM_DATA, task.mLastHttpResponseData);
+                request.put(Constants.DRM_DATA, task.getLastHttpResponseString());
                 request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_LEAVE_DOM_RESPONSE);
                 break;
             case PROCESS_TYPE_ACKNOWLEDGE_LICENSE:
                 request.put(Constants.DRM_ACTION, Constants.DRM_ACTION_PROCESS_LIC_ACK_RESPONSE);
-                request.put(Constants.DRM_DATA, task.mLastHttpResponseData);
+                request.put(Constants.DRM_DATA, task.getLastHttpResponseString());
                 break;
             default:
                 DrmLog.debug("Error no such case (forceFailureJob)");
@@ -458,7 +459,7 @@ public class RequestManager {
         public String mServiceId = Constants.ALL_ZEROS_DRM_ID;
         public String mAccountId = Constants.ALL_ZEROS_DRM_ID;
         public String mRevision = "0";
-        public String mLastHttpResponseData;
+        public byte[] mLastHttpResponseData;
         public String mHeader = null;
 
         public String mUrlUsed = null;
@@ -624,6 +625,25 @@ public class RequestManager {
                 res = buffer.toString();
             }
             return res;
+        }
+
+        private String getLastHttpResponseString() {
+            StringBuffer res = new StringBuffer();
+            InputStreamReader isr = Utils.getInputStreamReader(mLastHttpResponseData);
+            if (isr != null) {
+                char[] buffer = new char[1024];
+                int read = 0;
+                try {
+                    while ((read = isr.read(buffer, 0, buffer.length)) > -1) {
+                        res.append(new String(buffer, 0 ,read));
+                    }
+                    isr.close();
+                } catch (IOException e) {
+                    DrmLog.logException(e);
+                }
+
+            }
+            return res.toString();
         }
 
         private void parseErrorData(boolean renew, HashMap<String, String> errorData) {

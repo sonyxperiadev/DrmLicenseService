@@ -23,6 +23,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.utils.*;
+
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -30,15 +32,11 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.LongSparseArray;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
@@ -46,9 +44,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.URI;
 import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+
 
 public class UrlConnectionClient {
 
@@ -121,7 +117,6 @@ public class UrlConnectionClient {
             @Override
             public HttpURLConnection getRequest(String redirectUrl) throws Exception {
                 URL targetUrl = URI.create((redirectUrl != null) ? redirectUrl : url).toURL();
-                DrmLog.debug("POST Request " + targetUrl);
                 urlConnection = (HttpURLConnection)targetUrl.openConnection();
                 setParameters(context, urlConnection, fParameters);
                 urlConnection.setDoOutput(true);
@@ -138,7 +133,9 @@ public class UrlConnectionClient {
             public void sendData() throws IOException {
                 if (urlConnection != null) {
                     if (data != null && data.length() > 0) {
-                        writeDataToFile("post", data);
+                        if (Constants.DEBUG) {
+                            DrmLog.writeDataToFile("post", data.getBytes());
+                        }
                         urlConnection.setFixedLengthStreamingMode(data.length());
                         OutputStream out = urlConnection.getOutputStream();
                         out.write(data.getBytes());
@@ -175,7 +172,6 @@ public class UrlConnectionClient {
             public HttpURLConnection getRequest(String redirectUrl) throws Exception {
                 HttpURLConnection urlConnection = null;
                 URL targetUrl = URI.create((redirectUrl != null) ? redirectUrl : url).toURL();
-                DrmLog.debug("GET Request " + targetUrl);
                 urlConnection = (HttpURLConnection)targetUrl.openConnection();
                 setParameters(context, urlConnection, fParameters);
                 return urlConnection;
@@ -277,7 +273,9 @@ public class UrlConnectionClient {
 
         private String mRedirectUrl = null;
 
-        private String mRespData, mMimeType;
+        private byte[] mRespData;
+
+        private String mMimeType;
 
         private static final Object cancelSync = new Object();
 
@@ -364,7 +362,7 @@ public class UrlConnectionClient {
             if (!mIsCanceled) {
                 response = new Response(mStatusCode, mInnerStatusCode, mMimeType, mRespData);
                 if (mStatusCode == 200 || mStatusCode == 500) {
-                    writeDataToFile("resp", mRespData);
+                    DrmLog.writeDataToFile("resp", mRespData);
                 } else if (mRedirectUrl != null) {
                     response.mRedirect = mRedirectUrl.toString();
                 }
@@ -442,13 +440,7 @@ public class UrlConnectionClient {
                 // data is handled, abort request
                 abort = true;
             } else {
-                String contentType = con.getContentType();
-                if (contentType != null &&
-                        contentType.toLowerCase(Locale.US).contains("charset=utf-16")) {
-                    mRespData = inputStreamToString(is, "UTF-16");
-                } else {
-                    mRespData = inputStreamToString(is, "UTF-8");
-                }
+                mRespData = Utils.inputStreamToByteArray(is);
                 try {
                     is.close();
                 } catch (IOException e) {
@@ -456,32 +448,6 @@ public class UrlConnectionClient {
                 }
             }
             return abort;
-        }
-
-        private String inputStreamToString(InputStream is, String charset) {
-            String result = null;
-
-            try {
-                InputStreamReader isr = new InputStreamReader(is, charset);
-                int len;
-                char[] buf = new char[1024];
-                StringBuffer stringBuffer = new StringBuffer();
-                while ((len = isr.read(buf, 0, 1024)) != -1) {
-                    stringBuffer.append(new String(buf, 0 ,len));
-                }
-                // response might start with bytes Byte Order Mark which will cause parsing error
-                // make sure response starts with '<' in case of XML
-                if (stringBuffer.length() > 0) {
-                    result = stringBuffer.toString().trim();
-                    int xmlStart = result.indexOf('<');
-                    if (xmlStart >= 1 && xmlStart < 4) {
-                        result = result.substring(xmlStart, result.length());
-                    }
-                }
-            } catch (IOException e) {
-                DrmLog.logException(e);
-            }
-            return result;
         }
 
         public void cancel() {
@@ -500,11 +466,11 @@ public class UrlConnectionClient {
 
         private String mMime = null;
 
-        private String mData = null;
+        private byte[] mData = null;
 
         public String mRedirect = null;
 
-        public Response(int status, int innerStatus, String mime, String data) {
+        public Response(int status, int innerStatus, String mime, byte[] data) {
             DrmLog.debug("new Reponse status :" + status + " inner status: " + innerStatus);
             mStatus = status;
             mInnerStatus = innerStatus;
@@ -524,7 +490,7 @@ public class UrlConnectionClient {
             return mMime;
         }
 
-        public String getData() {
+        public byte[] getData() {
             return mData;
         }
     }
@@ -534,36 +500,6 @@ public class UrlConnectionClient {
             Request request = mIdMap.get(sessionId);
             if (request != null) {
                 request.cancel();
-            }
-        }
-    }
-
-    /*
-     * Debug function to write HTTP traffic to file
-     */
-    private static void writeDataToFile(String suffix, String data) {
-        if (Constants.DEBUG) {
-            File dir = new File(Environment.getExternalStorageDirectory()  + "/dls");
-            if (!dir.exists() && !dir.mkdirs()) {
-                return;
-            }
-            String datestr = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS-", Locale.US)
-                    .format(new Date());
-            File f = new File(Environment.getExternalStorageDirectory() + "/dls/" + datestr
-                    + suffix + ".xml");
-            try {
-                if (data != null) {
-                    FileOutputStream fos = new FileOutputStream(f);
-                    try {
-                        fos.write(data.getBytes());
-                    } finally {
-                        fos.close();
-                    }
-                } else {
-                    f.createNewFile();
-                }
-            } catch (IOException e) {
-                DrmLog.logException(e);
             }
         }
     }

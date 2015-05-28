@@ -25,6 +25,7 @@ package com.sonyericsson.android.drm.drmlicenseservice;
 
 import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.DataHandlerCallback;
 import com.sonyericsson.android.drm.drmlicenseservice.UrlConnectionClient.Response;
+import com.sonyericsson.android.drm.drmlicenseservice.utils.*;
 import com.sonyericsson.android.drm.drmlicenseservice.parser.DrmPiffParser;
 
 import android.annotation.SuppressLint;
@@ -33,14 +34,11 @@ import android.net.Uri;
 import android.util.Base64;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.HashMap;
 import java.util.Locale;
 
 public class HeaderExtractor {
@@ -68,33 +66,21 @@ public class HeaderExtractor {
                             FileOutputStream fos = new FileOutputStream(callbackFile, true);
                             int dataCounter = 0, read;
                             byte[] buffer = new byte[2048];
-                            boolean isUTF16 = false, checkedUTF = false;
+
                             try {
                                 while ((read = is.read(buffer)) != -1) {
                                     dataCounter += read;
-                                    if (manifest && !checkedUTF && read > 50) {
-                                        // only check if we have a arbitrary
-                                        // read size. Parsing would probably
-                                        // fail for less any way since size
-                                        // 50 is not enough for manifest
-                                        for (int i = 0; i < 50; i++) {
-                                            if (buffer[i] == 0x00) {
-                                                isUTF16 = true;
-                                                break;
-                                            }
-                                        }
-                                        checkedUTF = true;
-                                    }
                                     fos.write(buffer, 0, read);
 
                                     String header;
                                     if (manifest) {
-                                        header = findManifestHeader(callbackFile, isUTF16);
+                                        header = findManifestHeader(callbackFile);
                                     } else {
                                         header = findHeader(callbackFile);
                                     }
 
                                     if (header != null) {
+                                        DrmLog.debug("header found");
                                         // We have the header, stop download
                                         headerString.append(header);
                                         break;
@@ -214,29 +200,18 @@ public class HeaderExtractor {
         return header;
     }
 
-    private static String findManifestHeader(String inputFilename, boolean isUTF16) {
+    private static String findManifestHeader(String inputFilename) {
         String header = null;
-        try {
-            InputStream is = new FileInputStream(new File(inputFilename));
-            InputStreamReader isr = new InputStreamReader(is, isUTF16 ? "UTF-16" : "UTF-8");
-            HashMap<String, String> parsedXml = XmlParser.parseXml(isr);
-            isr.close();
-            is.close();
-            if (parsedXml != null) {
-                String protectionHeader = parsedXml.get("ProtectionHeader");
-                if (protectionHeader != null) {
-                    try {
-                        byte[] wrmheader = Base64.decode(protectionHeader, 0);
-                        header = DrmPiffParser.getPlayReadyHeader(wrmheader);
-                    } catch (Exception e) {
-                        // Base64.decode or getPlayReadyHeader failed somewhere,
-                        // probably tried to parse incomplete header
-                        DrmLog.logException(e);
-                    }
-                }
+        String protectionHeader = XmlParser.parseXml(new File(inputFilename), "ProtectionHeader");
+        if (protectionHeader != null) {
+            try {
+                byte[] wrmheader = Base64.decode(protectionHeader, 0);
+                header = DrmPiffParser.getPlayReadyHeader(wrmheader);
+            } catch (Exception e) {
+                // Base64.decode or getPlayReadyHeader failed somewhere,
+                // probably tried to parse incomplete header
+                DrmLog.logException(e);
             }
-        } catch (IOException e) {
-            DrmLog.logException(e);
         }
         return header;
     }

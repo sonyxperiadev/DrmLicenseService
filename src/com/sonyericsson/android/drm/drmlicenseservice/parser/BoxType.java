@@ -23,7 +23,7 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice.parser;
 
-import com.sonyericsson.android.drm.drmlicenseservice.DrmLog;
+import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
 
 import java.io.UnsupportedEncodingException;
 

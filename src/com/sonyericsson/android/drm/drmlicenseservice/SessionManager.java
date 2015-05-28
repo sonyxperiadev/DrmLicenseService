@@ -23,6 +23,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
+
 import android.os.Bundle;
 import android.os.DeadObjectException;
 import android.os.RemoteException;

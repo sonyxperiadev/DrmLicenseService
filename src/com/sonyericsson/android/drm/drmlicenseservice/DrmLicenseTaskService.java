@@ -24,6 +24,7 @@
 package com.sonyericsson.android.drm.drmlicenseservice;
 
 import com.sonyericsson.android.drm.drmlicenseservice.RequestManager.RedirectCallback;
+import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
 
 import android.app.IntentService;
 import android.content.Intent;

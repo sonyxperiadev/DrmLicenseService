@@ -21,12 +21,20 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-package com.sonyericsson.android.drm.drmlicenseservice;
+package com.sonyericsson.android.drm.drmlicenseservice.utils;
+
+import com.sonyericsson.android.drm.drmlicenseservice.Constants;
 
 import android.util.Log;
-
+import android.os.Environment;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class DrmLog {
 
@@ -48,5 +56,35 @@ public class DrmLog {
         e.printStackTrace(pw);
         DrmLog.debug("Exception " + e);
         DrmLog.debug(sw.toString());
+    }
+
+    /*
+     * Debug function to write HTTP traffic to file
+     */
+    public static void writeDataToFile(String suffix, byte[] data) {
+        if (Constants.DEBUG) {
+            File dir = new File(Environment.getExternalStorageDirectory()  + "/dls");
+            if (!dir.exists() && !dir.mkdirs()) {
+                return;
+            }
+            String datestr = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss.SSS-", Locale.US)
+                    .format(new Date());
+            File f = new File(Environment.getExternalStorageDirectory() + "/dls/" + datestr
+                    + suffix + ".xml");
+            try {
+                if (data != null) {
+                    FileOutputStream fos = new FileOutputStream(f);
+                    try {
+                        fos.write(data);
+                    } finally {
+                        fos.close();
+                    }
+                } else {
+                    f.createNewFile();
+                }
+            } catch (IOException e) {
+                DrmLog.logException(e);
+            }
+        }
     }
 }

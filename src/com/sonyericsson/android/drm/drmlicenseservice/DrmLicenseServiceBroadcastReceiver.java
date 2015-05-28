@@ -28,6 +28,8 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
