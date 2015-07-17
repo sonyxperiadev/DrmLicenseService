@@ -16,6 +16,8 @@ Ways to start DrmLicenseService:
 3. Send RenewRights intent for a file to acquire new rights.
 
 If you find any information to be incorrect or if you have any questions, feel free to contact:
+   * Yuta Yamaguchi
+   * Kyoko Toyota
    * Per3 Bengtsson
    * Daniel Broms
    (firstname.lastname@sonymobile.com)

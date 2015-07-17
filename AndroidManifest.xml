@@ -3,12 +3,10 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17596520"
-    android:versionName="01.050.0104">
+    android:versionCode="17596521"
+    android:versionName="01.050.0105">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="21"/>
 
