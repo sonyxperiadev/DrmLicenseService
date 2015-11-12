@@ -192,4 +192,5 @@ public class Constants {
     public static final int NOT_AIDL_SESSION = 0;
 
     protected static final long GARBAGE_COLLECT_INTERVAL = 604800; // one week in seconds
+    protected static final long JOB_SCHEDULER_DELAY = 3600000; // one hour in millisecond
 }

@@ -95,7 +95,7 @@ public class GarbageJobService extends JobService {
                 (currentTime - lastGc) + " needed: " + Constants.GARBAGE_COLLECT_INTERVAL);
             isSupported = true;
             isNeeded = Constants.DEBUG ||
-                    (Constants.GARBAGE_COLLECT_INTERVAL > currentTime - lastGc);
+                    (Constants.GARBAGE_COLLECT_INTERVAL < currentTime - lastGc);
         } catch (Exception e) {
             DrmLog.logException(e);
         }
@@ -105,11 +105,12 @@ public class GarbageJobService extends JobService {
             JobInfo jobInfo = new JobInfo.Builder( /*jobs created with the same jobId,
                 will update the pre-existing job with the same id*/ 0, name)
                 .setRequiresDeviceIdle(true)
-                .setMinimumLatency(3600000) // wait at least 1 h
+                .setMinimumLatency(Constants.JOB_SCHEDULER_DELAY) // wait at least 1 h to reschedule
                 //.setOverrideDeadline(Constants.GARBAGE_COLLECT_INTERVAL * 1000) // debug
                 .build();
             JobScheduler scheduler = (JobScheduler) context.getSystemService(
                     Context.JOB_SCHEDULER_SERVICE);
+            scheduler.cancelAll(); // control of multiple registration
             if (scheduler.schedule(jobInfo) != JobScheduler.RESULT_SUCCESS) {
                 DrmLog.debug("Failed to schedule garbage collection");
             }
