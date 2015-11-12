@@ -62,12 +62,14 @@ public class WebInitiatorTaskService extends IntentService {
 
     public WebInitiatorTaskService() {
         super("WebInitiatorTaskService");
+        DrmLog.debug("start");
         setIntentRedelivery(true);
+        DrmLog.debug("end");
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        DrmLog.debug("onHandleIntent");
+        DrmLog.debug("start");
         Bundle extras = intent.getExtras();
         if (extras != null) {
             mSessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID,
@@ -91,12 +93,14 @@ public class WebInitiatorTaskService extends IntentService {
 
         };
         execute();
+        DrmLog.debug("end");
     }
 
     /**
      * Trigger execution of WebInitiatorManager
      */
     public void execute() {
+        DrmLog.debug("start");
         boolean status = false;
         int httpError = 0;
         int innerHttpError = 0;
@@ -159,9 +163,11 @@ public class WebInitiatorTaskService extends IntentService {
                 !new File(mUri.getPath()).delete()) {
             DrmLog.debug("Failed to remove executed webinitiator");
         }
+        DrmLog.debug("end");
     }
 
     private WebinitiatorData getWebinitiator() {
+        DrmLog.debug("start");
         byte[] respData = null;
         int httpError = 0, innerHttpError = 0;
         if (mUri != null) {
@@ -246,11 +252,13 @@ public class WebInitiatorTaskService extends IntentService {
         } else {
             httpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
         }
+        DrmLog.debug("end");
         return new WebinitiatorData(respData, httpError, innerHttpError);
     }
 
     private void handleInitiatorDataItem(HashMap<String, String> data, int numberOfGroups,
             int groupId) {
+        DrmLog.debug("start");
         String type = data.get("type");
         Bundle callbackParameters = new Bundle();
         Intent intent = new Intent(Constants.TASK_SERVICE);
@@ -301,6 +309,7 @@ public class WebInitiatorTaskService extends IntentService {
         }
         intent.putExtra(Constants.DLS_INTENT_CB_PARAMS,callbackParameters);
         mContext.startService(intent);
+        DrmLog.debug("end");
     }
 
     private static class WebinitiatorData {
@@ -309,9 +318,11 @@ public class WebInitiatorTaskService extends IntentService {
         int innerHttpError = 0;
 
         private WebinitiatorData (byte[] respData, int error, int innerError) {
+            DrmLog.debug("start");
             data = respData;
             httpError = error;
             innerHttpError = innerError;
+            DrmLog.debug("end");
         }
     }
 }

@@ -73,8 +73,10 @@ public class DrmPiffParser {
      *  Creates a parser for piff files.
      */
     public DrmPiffParser() {
+        DrmLog.debug("start");
         mExtendedParsing = false;
         mOffset = 0;
+        DrmLog.debug("end");
     }
 
     /**
@@ -84,7 +86,9 @@ public class DrmPiffParser {
      * @return pssh data, or null if not found
      */
     public byte[] getPsshBox(String path) throws Exception {
+        DrmLog.debug("start");
         parseFile(path);
+        DrmLog.debug("end");
         return getPlayReadyObjects();
     }
 
@@ -97,8 +101,10 @@ public class DrmPiffParser {
      * @return header, or null if not found
      */
     public String getPlayReadyHeader(String path) throws Exception {
+        DrmLog.debug("start");
         parseFile(path);
         byte[] playReadyObjects = getPlayReadyObjects();
+        DrmLog.debug("end");
         return getPlayReadyHeader(playReadyObjects);
     }
 
@@ -109,6 +115,7 @@ public class DrmPiffParser {
      * @return header, or null if not found
      */
     public static String getPlayReadyHeader(byte[] playReadyObjects) {
+        DrmLog.debug("start");
         String result = null;
         if (playReadyObjects != null) {
             long recordOffset = 0;
@@ -155,50 +162,65 @@ public class DrmPiffParser {
                 }
             }
         }
+        DrmLog.debug("end");
         return result;
     }
 
     private boolean isPiffFile(Boxes.FileTypeBox box) {
+        DrmLog.debug("start");
         if (box.majorBrand == PIFF_BRAND) {
+            DrmLog.debug("end");
             return box.minorVersion == PIFF_MINOR_VERSION;
         }
         for (int i = 0; i < box.compatibleBrands.size(); ++i) {
             if (box.compatibleBrands.get(i) == PIFF_BRAND) {
+                DrmLog.debug("end");
                 return true;
             }
         }
+        DrmLog.debug("end");
         return false;
     }
 
     private boolean readBytes(byte[] buffer, int numBytes) {
+        DrmLog.debug("start");
         long readed = 0;
 
         try {
             readed = mFile.read(buffer, 0, numBytes);
+            DrmLog.debug("end");
             return readed == numBytes;
         } catch (IOException ex) {
+            DrmLog.error("IOException");
             return false;
         }
     }
 
     private boolean setFilePos(long offset) {
+        DrmLog.debug("start");
         try {
             mFile.seek(offset);
+            DrmLog.debug("end");
             return true;
         } catch (IOException ex) {
+            DrmLog.error("IOException");
             return false;
         }
     }
 
     private long setFilePos() {
+        DrmLog.debug("start");
         try {
+            DrmLog.debug("end");
             return mFile.length();
         } catch (IOException ex) {
+            DrmLog.error("IOException");
             return -1;
         }
     }
 
     private Box createFileTypeBox(long offset, long size, BoxType boxType) {
+        DrmLog.debug("start");
         Box box = null;
         Boxes.FileTypeBox derivedBox = new Boxes.FileTypeBox(offset, size, boxType);
         int bufferSize = (int)(derivedBox.end() - mOffset);
@@ -220,10 +242,12 @@ public class DrmPiffParser {
                 }
             }
         }
+        DrmLog.debug("end");
         return box;
     }
 
     private Box createProtSysSpecificHeaderBox(long offset, long size, BoxType boxType) {
+        DrmLog.debug("start");
         Box box = null;
         Boxes.ProtSysSpecificHeaderBox derivedBox = new Boxes.ProtSysSpecificHeaderBox(offset,
                 size, boxType);
@@ -242,10 +266,12 @@ public class DrmPiffParser {
                 }
             }
         }
+        DrmLog.debug("end");
         return box;
     }
 
     private Box createBox(long offset, long size, BoxType boxType) {
+        DrmLog.debug("start");
         Box box = null;
         if (boxType.equals(moovBoxType)) {
             box = new Box(offset, size, boxType);
@@ -270,21 +296,26 @@ public class DrmPiffParser {
                 }
             }
         }
+        DrmLog.debug("end");
         return box;
     }
 
     private boolean isAsciiPrintable(byte ch) {
+        DrmLog.debug("start");
         return ch >= 32 && ch < 127;
     }
 
     private Box readBox(long maxSize) {
+        DrmLog.debug("start");
         long offset = mOffset;
         byte[] buffer = new byte[8];
         if (!readBytes(buffer, buffer.length)) {
+            DrmLog.debug("end");
             return null;
         }
         if (!isAsciiPrintable(buffer[4]) || !isAsciiPrintable(buffer[5])
                 || !isAsciiPrintable(buffer[6]) || !isAsciiPrintable(buffer[7])) {
+            DrmLog.debug("end");
             return null;
         }
         mOffset += buffer.length;
@@ -294,6 +325,7 @@ public class DrmPiffParser {
 
         if (size == 1) {
             if (!readBytes(buffer, buffer.length)) {
+                DrmLog.debug("end");
                 return null;
             }
             mOffset += buffer.length;
@@ -302,6 +334,7 @@ public class DrmPiffParser {
         if (boxType.type == BOX_TYPE_UUID) {
             boxType.uuid = new Uuid();
             if (boxType.uuid == null || !readBytes(boxType.uuid.value, Uuid.UUID_LEN)) {
+                DrmLog.debug("end");
                 return null;
             }
             mOffset += Uuid.UUID_LEN;
@@ -311,14 +344,17 @@ public class DrmPiffParser {
         // file size less than box size
         if (size > 0 && offset + size < mOffset || size > ((maxSize < MAX_BOX_SIZE) ? MAX_BOX_SIZE
                 : maxSize)) {
+            DrmLog.debug("end");
             return null;
         }
 
         Box b = createBox(offset, size, boxType);
+        DrmLog.debug("end");
         return b;
     }
 
     private void parseFile(String path) {
+        DrmLog.debug("start");
         try {
             mFile = new RandomAccessFile(path, "r");
             long fileSize = mFile.length();
@@ -357,9 +393,11 @@ public class DrmPiffParser {
         } catch (IOException e) {
             DrmLog.logException(e);
         }
+        DrmLog.debug("end");
     }
 
     private byte[] getPlayReadyObjects() {
+        DrmLog.debug("start");
         byte[] result = null;
         Box box = mFileStructure.get(Helper.BoxTypeForName("moov"), Box.EmptyBox).subBoxes.get(
                 Helper.BoxTypeForName("uuid"), Box.EmptyBox);
@@ -379,6 +417,7 @@ public class DrmPiffParser {
                 }
             }
         }
+        DrmLog.debug("end");
         return result;
     }
 }

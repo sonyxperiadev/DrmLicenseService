@@ -105,6 +105,7 @@ public class RequestManager {
      * @param callback for redirect information
      */
     public RequestManager(Context context, Bundle parameters, RedirectCallback callback) {
+        DrmLog.debug("start");
         mCallback = callback;
         mContext = context;
         try {
@@ -122,12 +123,14 @@ public class RequestManager {
         } catch (Exception e) {
             DrmLog.logException(e);
         }
+        DrmLog.debug("end");
     }
 
     /**
      * Trigger request
      */
     public void execute() {
+        DrmLog.debug("start");
         Task currentTask = null;
         while (!mTasks.isEmpty()) {
             currentTask = mTasks.pop();
@@ -155,12 +158,14 @@ public class RequestManager {
             mMediaDrm.closeSession(mSessionId);
             mMediaDrm.release();
         }
+        DrmLog.debug("end");
     }
 
     /**
      * prepares request to PK
      */
     private KeyRequest prepareRequest(Task task) {
+        DrmLog.debug("start");
         DrmLog.debug("prepareRequest, type: " + task.type);
         HashMap<String, String> request = new HashMap<String, String>();
         String customData;
@@ -171,9 +176,11 @@ public class RequestManager {
                 break;
             case TYPE_ACQUIRE_LICENSE:
                 if (task.mHeader == null) {
+                    DrmLog.debug("end");
                     return null;
                 } else if (!XmlParser.isValidXml(task.mHeader)) {
                     task.mHttpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
+                    DrmLog.debug("end");
                     return null;
                 }
                 request.put(Constants.DRM_HEADER, task.mHeader);
@@ -186,6 +193,7 @@ public class RequestManager {
                 if (task.mServiceId.equals(Constants.ALL_ZEROS_DRM_ID) &&
                         task.mAccountId.equals(Constants.ALL_ZEROS_DRM_ID)) {
                     task.mHttpError = Constants.HTTP_ERROR_INTERNAL_ERROR;
+                    DrmLog.debug("end");
                     return null;
                 }
                 request.put(Constants.DRM_DOMAIN_SERVICE_ID, task.mServiceId);
@@ -206,6 +214,7 @@ public class RequestManager {
             case TYPE_LEAVE_DOMAIN:
                 if (task.mServiceId.equals(Constants.ALL_ZEROS_DRM_ID) &&
                     task.mAccountId.equals(Constants.ALL_ZEROS_DRM_ID)) {
+                    DrmLog.debug("end");
                     return null;
                 }
                 request.put(Constants.DRM_DOMAIN_SERVICE_ID, task.mServiceId);
@@ -234,6 +243,8 @@ public class RequestManager {
                 return null;
         }
         DrmLog.debug(request.toString());
+        DrmLog.debug("task type:" + task.type);
+        DrmLog.debug("end");
         return createKeyRequest(request);
     }
 
@@ -242,7 +253,7 @@ public class RequestManager {
      * both processing of last request and generating of possible response
      */
     private KeyRequest createKeyRequest(HashMap<String, String> parameters) {
-        DrmLog.debug("createKeyRequest");
+        DrmLog.debug("start");
         KeyRequest keyRequest = null;
         try {
             keyRequest = mMediaDrm.getKeyRequest(mSessionId, null, null, MediaDrm.KEY_TYPE_OFFLINE,
@@ -250,6 +261,7 @@ public class RequestManager {
         } catch (Exception e) {
             DrmLog.logException(e);
         }
+        DrmLog.debug("end");
         return keyRequest;
     }
 
@@ -257,7 +269,7 @@ public class RequestManager {
      * Handle keyRequest response from PK, if "ok"/"fail" from PK were done.
      */
     private void processKeyRequest(KeyRequest keyRequest, Task currentTask) {
-        DrmLog.debug("processKeyRequest");
+        DrmLog.debug("start");
         currentTask.lastType = currentTask.type;
         if (keyRequest != null) {
             byte[] data = keyRequest.getData();
@@ -302,9 +314,11 @@ public class RequestManager {
         } else {
             DrmLog.debug("missing parameters for prepareKeyRequest");
         }
+        DrmLog.debug("end");
     }
 
     private String getType(int type) {
+        DrmLog.debug("start");
         String soapAction = "";
         switch (type) {
             case TYPE_ACKNOWLEDGE_LICENSE:
@@ -322,10 +336,13 @@ public class RequestManager {
                 break;
             default:
         }
+        DrmLog.debug("type:" + type);
+        DrmLog.debug("end");
         return soapAction;
     }
 
     private void tryRedirect(Task task) {
+        DrmLog.debug("start");
         if (task.mLuiUrl == null) {
             task.parseForLuiUrl();
         }
@@ -341,10 +358,11 @@ public class RequestManager {
                 }
             }
         }
+        DrmLog.debug("end");
     }
 
     private void processHttpResponse(Response httpResponse, Task currentTask) {
-        DrmLog.debug("processHttpResponse");
+        DrmLog.debug("start");
         if (httpResponse != null) {
             switch (httpResponse.getStatus()) {
                 case 200:
@@ -441,6 +459,7 @@ public class RequestManager {
                 currentTask.mHttpError = Constants.HTTP_ERROR_CANCELLED;
             }
         }
+        DrmLog.debug("Http response: " + httpResponse.getStatus());
         DrmLog.debug("processHttpResponse end " + currentTask.mHttpError + "  " +
                 currentTask.mInnerHttpError);
     }
@@ -479,6 +498,7 @@ public class RequestManager {
         }
 
         private Task(Bundle taskParams) {
+            DrmLog.debug("start");
             this.type = taskParams.getInt(Constants.DLS_INTENT_REQUEST_TYPE, -1);
             this.mDlsSessionId = taskParams.getLong(Constants.DLS_INTENT_SESSION_ID,
                     Constants.NOT_AIDL_SESSION);
@@ -537,6 +557,8 @@ public class RequestManager {
                     DrmLog.debug("Error no such case (forceFailureJob)");
             }
             setRetryCallback();
+            DrmLog.debug("type:" + type);
+            DrmLog.debug("end");
         }
 
         private void setRetryCallback() {
@@ -545,6 +567,7 @@ public class RequestManager {
 
                 @Override
                 public void retryingUrl(int httpError, int innerHttpError, String url) {
+                    DrmLog.debug("start");
                     if (fSessionId > Constants.NOT_AIDL_SESSION) {
                         Bundle parameters = (mCallbackParameters == null) ? new Bundle()
                                 : (Bundle)mCallbackParameters.clone();
@@ -554,6 +577,7 @@ public class RequestManager {
                         SessionManager.getInstance().callback(fSessionId,
                                 Constants.PROGRESS_TYPE_HTTP_RETRYING, true, parameters);
                     }
+                    DrmLog.debug("end");
                 }
 
             };
@@ -566,6 +590,7 @@ public class RequestManager {
          * callback parameters so we get correct GroupId and Groups count
          */
         private Task deriveDomainJob(boolean renew, HashMap<String, String> errorData) {
+            DrmLog.debug("start");
             Task joinDomainTask = new Task(TYPE_JOIN_DOMAIN);
             joinDomainTask.mHeader = mHeader;
             joinDomainTask.mDlsSessionId = mDlsSessionId;
@@ -577,24 +602,29 @@ public class RequestManager {
             joinDomainTask.isDerived  = true;
             joinDomainTask.setRetryCallback();
             joinDomainTask.parseErrorData(renew, errorData);
+            DrmLog.debug("end");
             return joinDomainTask;
         }
 
         private String getParam(String parameterkey) {
+            DrmLog.debug("start");
             String res = null;
             Bundle httpParameters = SessionManager.getInstance().getHttpParams(mDlsSessionId);
             if (httpParameters != null) {
                 res = httpParameters.getString(parameterkey, null);
             }
+            DrmLog.debug("end");
             return res;
         }
 
         private int getParam(String parameterkey, int defaultValue) {
+            DrmLog.debug("start");
             int res = defaultValue;
             Bundle httpParameters = SessionManager.getInstance().getHttpParams(mDlsSessionId);
             if (httpParameters != null) {
                 res = httpParameters.getInt(parameterkey, defaultValue);
             }
+            DrmLog.debug("end");
             return res;
         }
 
@@ -603,6 +633,7 @@ public class RequestManager {
          * both customdata from webinitiator and parameters.
          */
         private String getCustomData() {
+            DrmLog.debug("start");
             StringBuilder buffer = new StringBuilder();
             String res = null;
             String customDataFromParams = this.getParam(Constants.DRM_KEYPARAM_CUSTOM_DATA);
@@ -624,10 +655,12 @@ public class RequestManager {
             if(buffer.length() > 0){
                 res = buffer.toString();
             }
+            DrmLog.debug("end");
             return res;
         }
 
         private String getLastHttpResponseString() {
+            DrmLog.debug("start");
             StringBuffer res = new StringBuffer();
             InputStreamReader isr = Utils.getInputStreamReader(mLastHttpResponseData);
             if (isr != null) {
@@ -643,10 +676,12 @@ public class RequestManager {
                 }
 
             }
+            DrmLog.debug("end");
             return res.toString();
         }
 
         private void parseErrorData(boolean renew, HashMap<String, String> errorData) {
+            DrmLog.debug("start");
             mServiceId = errorData.get(SERVICE_ID);
             if (mServiceId == null) {
                 mServiceId = Constants.ALL_ZEROS_DRM_ID;
@@ -666,9 +701,11 @@ public class RequestManager {
                 mRevision = (errorData.get(REVISION) != null) ? errorData.get(REVISION) : mRevision;
                 mParsedCustomData = (customData != null) ? customData : mParsedCustomData;
             }
+            DrmLog.debug("end");
         }
 
         private void report() {
+            DrmLog.debug("start");
             DrmLog.debug("Report, type: " + type + ", lastType: " + lastType + ", STATUS: "
                     + isOk + ", HTML_ERROR: " + mHttpError + ", INNER_HTML_ERROR: " +
                     mInnerHttpError);
@@ -705,12 +742,15 @@ public class RequestManager {
                 SessionManager.getInstance().callback(mDlsSessionId, state, isOk,
                         mCallbackParameters);
             }
+            DrmLog.debug("end");
         }
 
         private void parseForLuiUrl() {
+            DrmLog.debug("start");
             if (mHeader != null) {
                 mLuiUrl = XmlParser.parseXml(mHeader, "LUI_URL");
             }
+            DrmLog.debug("end");
         }
     }
 }

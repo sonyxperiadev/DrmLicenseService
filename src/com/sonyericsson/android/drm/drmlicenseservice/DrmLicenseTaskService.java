@@ -37,20 +37,24 @@ public class DrmLicenseTaskService extends IntentService {
 
         @Override
         public void onLaunchLuiUrl(String url) {
+            DrmLog.debug("start");
             Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getBaseContext().startActivity(i);
+            DrmLog.debug("end");
         }
     };
 
     public DrmLicenseTaskService() {
         super("DrmLicenseTaskService");
+        DrmLog.debug("start");
         setIntentRedelivery(true);
+        DrmLog.debug("end");
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        DrmLog.debug("onHandleIntent");
+        DrmLog.debug("start");
         Bundle extras = intent.getExtras();
         long sessionId = 0;
         int intentType = -1;
@@ -81,7 +85,8 @@ public class DrmLicenseTaskService extends IntentService {
                         mCallback);
                 requestManager.execute();
         }
-        DrmLog.debug("Finished handle intent ");
+        DrmLog.debug("Finished handle intent" + intentType);
+        DrmLog.debug("end");
     }
 
 }

@@ -47,12 +47,15 @@ public class DrmLicenseService extends Service {
 
     @Override
     public void onCreate() {
+        DrmLog.debug("start");
         super.onCreate();
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+        DrmLog.debug("end");
     }
 
     @Override
     public int onStartCommand(final Intent intent, int flags, int startId) {
+        DrmLog.debug("start");
         String intentAction;
         if (intent != null && (intentAction = intent.getAction()) != null) {
             if (intentAction.equals(Constants.INTENT_ACTION_DRM_SERVICE_RENEW)) {
@@ -71,11 +74,13 @@ public class DrmLicenseService extends Service {
                 DrmLog.debug("Action is not supported");
             }
         }
+        DrmLog.debug("end");
         return Service.START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        DrmLog.debug("start");
         SessionManager.getInstance().clearDeadObjects();
         super.onDestroy();
         GarbageJobService.ScheduleGarbageCollection(this);
@@ -83,6 +88,7 @@ public class DrmLicenseService extends Service {
     }
 
     private void renewRights(final Intent intent) {
+        DrmLog.debug("start");
         byte[] psshBox = intent.getByteArrayExtra(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX);
         String header = intent.getStringExtra(Constants.DRM_KEYPARAM_RENEW_HEADER);
         final Uri uri = intent.getData();
@@ -100,9 +106,11 @@ public class DrmLicenseService extends Service {
             serviceintent.setClass(this, DrmLicenseTaskService.class);
             startService(serviceintent);
         }
+        DrmLog.debug("end");
     }
 
     private void handleWebInitiator(final Intent intent) {
+        DrmLog.debug("start");
         final Uri uri = intent.getData();
         String mime = intent.getType();
         if (mime != null && mime.equals(Constants.DRM_DLS_INITIATOR_MIME)) {
@@ -114,10 +122,12 @@ public class DrmLicenseService extends Service {
                 Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
             }
         }
+        DrmLog.debug("end");
     }
 
     @Override
     public IBinder onBind(Intent intent) {
+        DrmLog.debug("start");
         // Return the interface
         return mBinder;
     }
@@ -125,6 +135,7 @@ public class DrmLicenseService extends Service {
     private final IDrmLicenseService.Stub mBinder = new IDrmLicenseService.Stub() {
         public long handleWebInitiator(Uri uri, Bundle parameters,
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
+            DrmLog.debug("start");
             long sessionId = 0;
             if (uri != null) {
                 sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
@@ -134,11 +145,13 @@ public class DrmLicenseService extends Service {
                 serviceintent.setClass(getBaseContext(), WebInitiatorTaskService.class);
                 startService(serviceintent);
             }
+            DrmLog.debug("end");
             return sessionId;
         }
 
         public long renewRights(Uri uri, Bundle parameters,
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
+            DrmLog.debug("start");
             long sessionId = 0;
             if (uri != null) {
                 sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
@@ -158,12 +171,14 @@ public class DrmLicenseService extends Service {
                 serviceintent.setClass(getBaseContext(), DrmLicenseTaskService.class);
                 startService(serviceintent);
             }
+            DrmLog.debug("end");
             return sessionId;
         }
 
         @Override
         public long renewRightsExt(Bundle renewData, Bundle parameters,
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
+            DrmLog.debug("start");
             long sessionId = 0;
             if (renewData != null) {
 
@@ -199,18 +214,21 @@ public class DrmLicenseService extends Service {
                     startService(serviceintent);
                 }
             }
+            DrmLog.debug("end");
             return sessionId;
         }
 
         @Override
         public boolean setCallbackListener(IDrmLicenseServiceCallback callbackHandler,
                 long sessionId, Bundle parameters) throws RemoteException {
+            DrmLog.debug("start");
             return SessionManager.getInstance().connectToSession(sessionId, callbackHandler,
                     parameters);
         }
 
         @Override
         public boolean cancelSession(long sessionId) throws RemoteException {
+            DrmLog.debug("start");
             return SessionManager.getInstance().cancel(sessionId);
         }
     };

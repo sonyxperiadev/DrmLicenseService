@@ -42,6 +42,7 @@ public class DrmLicenseServiceBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        DrmLog.debug("start");
         String intentAction = intent.getAction();
         if (intentAction != null) {
             if (intentAction.equals(Constants.DRM_RENEW_RIGHTS_ACTION)) {
@@ -51,5 +52,6 @@ public class DrmLicenseServiceBroadcastReceiver extends BroadcastReceiver {
                 context.startService(intent);
             }
         }
+        DrmLog.debug("end");
     }
 }

@@ -50,12 +50,22 @@ public class DrmLog {
         }
     }
 
+    public static void error(String message)
+    {
+        int i = 3;
+        String fullClassName = Thread.currentThread().getStackTrace()[i].getClassName();
+        String className = fullClassName.substring(fullClassName.lastIndexOf(".") + 1);
+        String methodName = Thread.currentThread().getStackTrace()[i].getMethodName();
+        int line = Thread.currentThread().getStackTrace()[i].getLineNumber();
+        Log.e(Constants.LOGTAG, className + "." + methodName + ":" + line + " " + message);
+    }
+
     public static void logException(Exception e) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         e.printStackTrace(pw);
-        DrmLog.debug("Exception " + e);
-        DrmLog.debug(sw.toString());
+        DrmLog.error("Exception " + e);
+        DrmLog.error(sw.toString());
     }
 
     /*

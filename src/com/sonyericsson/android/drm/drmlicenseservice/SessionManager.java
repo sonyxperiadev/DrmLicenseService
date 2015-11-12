@@ -52,12 +52,14 @@ public class SessionManager {
     private ReentrantLock mLock = new ReentrantLock();
 
     private SessionManager() {
+        DrmLog.debug("start");
         mCallbackHandlers = new LongSparseArray<IDrmLicenseServiceCallback>();
         mTrafficParameters = new LongSparseArray<Bundle>();
         mCancelledSessions = new ArrayList<Long>();
         mSessions = new ArrayList<Long>();
         mGroupStatus = new LongSparseArray<Boolean>();
         mStoredCallbacks = new ArrayList<SessionManager.StoredCallback>();
+        DrmLog.debug("end");
     }
 
     /**
@@ -74,9 +76,11 @@ public class SessionManager {
      * @return singleton
      */
     public synchronized static SessionManager getInstance() {
+        DrmLog.debug("start");
         if (s_mapper == null) {
             s_mapper = new SessionManager();
         }
+        DrmLog.debug("end");
         return s_mapper;
     }
 
@@ -90,6 +94,7 @@ public class SessionManager {
      * @return session ID
      */
     public long startSession(IDrmLicenseServiceCallback callbackhandler, Bundle parameters) {
+        DrmLog.debug("start");
         long sessionId = -1;
         while (sessionId == -1) {
             sessionId = System.currentTimeMillis();
@@ -113,6 +118,7 @@ public class SessionManager {
                 }
             }
         }
+        DrmLog.debug("end");
         return sessionId;
     }
 
@@ -123,6 +129,7 @@ public class SessionManager {
      * @param sessionId
      */
     public void makeSureAIDLSessionIsOpen(long sessionId) {
+        DrmLog.debug("start");
         try {
             mLock.lock();
             if (sessionId > Constants.NOT_AIDL_SESSION && !mSessions.contains(sessionId)) {
@@ -131,6 +138,7 @@ public class SessionManager {
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
     }
 
     /**
@@ -143,6 +151,7 @@ public class SessionManager {
      */
     public boolean connectToSession(long sessionId, IDrmLicenseServiceCallback callbackHandler,
             Bundle parameters) {
+        DrmLog.debug("start");
         boolean res = false;
         try {
             mLock.lock();
@@ -153,6 +162,7 @@ public class SessionManager {
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
         return res;
     }
 
@@ -164,6 +174,7 @@ public class SessionManager {
      *         specified in original request.
      */
     public Bundle getHttpParams(long sessionId) {
+        DrmLog.debug("start");
         Bundle parameters = null;
         try {
             mLock.lock();
@@ -171,6 +182,7 @@ public class SessionManager {
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
         return parameters;
     }
 
@@ -183,6 +195,7 @@ public class SessionManager {
      *         cancelled and true returned.
      */
     public boolean cancel(long sessionId) {
+        DrmLog.debug("start");
         boolean res = false;
         try {
             mLock.lock();
@@ -195,6 +208,7 @@ public class SessionManager {
         }
 
         UrlConnectionClient.prepareCancel(sessionId);
+        DrmLog.debug("end");
         return res;
     }
 
@@ -205,6 +219,7 @@ public class SessionManager {
      * @return true if session has been cancelled, otherwise false
      */
     public boolean isCancelled(long sessionId) {
+        DrmLog.debug("start");
         boolean isCancelled = false;
         try {
             mLock.lock();
@@ -212,6 +227,7 @@ public class SessionManager {
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
         return isCancelled;
     }
 
@@ -222,12 +238,14 @@ public class SessionManager {
      * @param sessionId dls session id
      */
     public void clearCancelled(long sessionId) {
+        DrmLog.debug("start");
         try {
             mLock.lock();
             mCancelledSessions.remove(sessionId);
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
     }
 
     /**
@@ -235,13 +253,14 @@ public class SessionManager {
      * stopped and destroyed
      */
     public void clearDeadObjects() {
-        DrmLog.debug("clearDeadObjects");
+        DrmLog.debug("start");
         try {
             mLock.lock();
             mCallbackHandlers.clear();
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
     }
 
     /**
@@ -255,12 +274,14 @@ public class SessionManager {
      * @param parameters specific callback values
      */
     public void callback(long sessionId, int state, boolean status, Bundle parameters) {
+        DrmLog.debug("start");
         try {
             mLock.lock();
             tryToSendCallback(buildCallback(sessionId, state, status, parameters));
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
     }
 
     // private function, concurrency from public functions
@@ -270,6 +291,7 @@ public class SessionManager {
      */
     private void map(long sessionId, IDrmLicenseServiceCallback callbackhandler, Bundle parameters)
             {
+        DrmLog.debug("start");
         DrmLog.debug("Mapping callbackHandler and httpParameters for sessionId: " + sessionId);
         // Add/update session values
         mTrafficParameters.put(sessionId, parameters);
@@ -277,6 +299,7 @@ public class SessionManager {
             mCallbackHandlers.put(sessionId, callbackhandler);
             reportNonReportedCallback(sessionId);
         }
+        DrmLog.debug("end");
     }
 
     /**
@@ -286,6 +309,7 @@ public class SessionManager {
      * @return true if session exists
      */
     public boolean hasCallbackHandler(long sessionId) {
+        DrmLog.debug("start");
         boolean res = false;
         try {
             mLock.lock();
@@ -293,6 +317,7 @@ public class SessionManager {
         } finally {
             mLock.unlock();
         }
+        DrmLog.debug("end");
         return res;
     }
 
@@ -301,6 +326,7 @@ public class SessionManager {
      */
     private StoredCallback buildCallback(long sessionId, int state, boolean status,
             Bundle parameters) {
+        DrmLog.debug("start");
         Bundle reportParameters = new Bundle();
         int groups = parameters.getInt(Constants.DRM_KEYPARAM_GROUP_COUNT, -1);
         String path = parameters.getString(Constants.DLS_CB_PATH);
@@ -357,8 +383,11 @@ public class SessionManager {
                 }
                 break;
             default:
+                DrmLog.debug("Error no such case");
                 return null;
         }
+        DrmLog.debug("state:" + state);
+        DrmLog.debug("end");
 
         return new StoredCallback(sessionId, state, status, reportParameters);
     }
@@ -367,6 +396,7 @@ public class SessionManager {
      * Not thread safe, lock handled in public function map
      */
     private boolean tryToSendCallback(StoredCallback cb) {
+        DrmLog.debug("start");
         boolean status = true;
         if (cb != null) {
             IDrmLicenseServiceCallback callbackHandler = mCallbackHandlers.get(cb.mSessionId, null);
@@ -395,6 +425,7 @@ public class SessionManager {
             }
         }
         DrmLog.debug("tryToSendCallback status " + status);
+        DrmLog.debug("end");
         return status;
     }
 
@@ -402,6 +433,7 @@ public class SessionManager {
      * Not thread safe, lock handled in public function map
      */
     private void storeCallback(StoredCallback newCallback) {
+        DrmLog.debug("start");
         mStoredCallbacks.add(newCallback);
         if (mStoredCallbacks.size() > MAX_NUMBER_CALLBACKS) {
             StoredCallback dequenedCallback = mStoredCallbacks.remove(0);
@@ -414,12 +446,14 @@ public class SessionManager {
             }
             DrmLog.debug("dropping callback");
         }
+        DrmLog.debug("end");
     }
 
     /*
      * Not thread safe, lock handled in public function map
      */
     private void reportNonReportedCallback(long sessionId) {
+        DrmLog.debug("start");
         DrmLog.debug("checkForNonReportedCallback " + mStoredCallbacks.size());
         for (int i = 0; i < mStoredCallbacks.size(); i++) {
             if (mStoredCallbacks.get(i).mSessionId == sessionId) {
@@ -433,6 +467,7 @@ public class SessionManager {
                 }
             }
         }
+        DrmLog.debug("end");
     }
 
     /*
@@ -446,25 +481,31 @@ public class SessionManager {
      * Not thread safe, lock handled in public function callback/map
      */
     private void clearSession(long sessionId) {
+        DrmLog.debug("start");
         mCallbackHandlers.remove(sessionId);
         mTrafficParameters.remove(sessionId);
         mSessions.remove(sessionId);
         mGroupStatus.remove(sessionId);
+        DrmLog.debug("end");
     }
 
     /*
      * Not thread safe, lock handled in public function callback/map
      */
     private void updateGroupStatus(long sessionId, boolean status) {
+        DrmLog.debug("start");
         mGroupStatus.put(sessionId, (mGroupStatus.get(sessionId, true) && status));
+        DrmLog.debug("end");
     }
 
     /*
      * Not thread safe, lock handled in public function callback/map
      */
     private boolean getGroupStatus(long sessionId) {
+        DrmLog.debug("start");
         boolean status = mGroupStatus.get(sessionId, true);
         mGroupStatus.delete(sessionId);
+        DrmLog.debug("end");
         return status;
     }
 
@@ -472,6 +513,7 @@ public class SessionManager {
      * Not thread safe, lock handled in public function callback/map
      */
     private void copyGenericParameters(Bundle outParameters, Bundle inParameters) {
+        DrmLog.debug("start");
         String customData = inParameters.getString(Constants.DRM_KEYPARAM_CUSTOM_DATA);
         if (customData != null) {
             outParameters.putString(Constants.DRM_KEYPARAM_CUSTOM_DATA, customData);
@@ -488,6 +530,7 @@ public class SessionManager {
         if (innerHttpError != 0) {
             outParameters.putInt(Constants.DRM_KEYPARAM_INNER_HTTP_ERROR, innerHttpError);
         }
+        DrmLog.debug("end");
     }
 
     private static class StoredCallback {
@@ -497,10 +540,12 @@ public class SessionManager {
         Bundle mParameters;
 
         public StoredCallback(long sessionId, int state, boolean status, Bundle parameters) {
+            DrmLog.debug("start");
             mSessionId = sessionId;
             mState = state;
             mStatus = status;
             mParameters = parameters;
+            DrmLog.debug("end");
         }
     }
 }

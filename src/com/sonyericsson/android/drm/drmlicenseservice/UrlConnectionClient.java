@@ -116,6 +116,7 @@ public class UrlConnectionClient {
 
             @Override
             public HttpURLConnection getRequest(String redirectUrl) throws Exception {
+                DrmLog.debug("start");
                 URL targetUrl = URI.create((redirectUrl != null) ? redirectUrl : url).toURL();
                 urlConnection = (HttpURLConnection)targetUrl.openConnection();
                 setParameters(context, urlConnection, fParameters);
@@ -126,11 +127,13 @@ public class UrlConnectionClient {
                             "\"http://schemas.microsoft.com/DRM/2007/03/protocols/" +
                                     messageType + "\"");
                 }
+                DrmLog.debug("end");
                 return urlConnection;
             }
 
             @Override
             public void sendData() throws IOException {
+                DrmLog.debug("start");
                 if (urlConnection != null) {
                     if (data != null && data.length() > 0) {
                         if (Constants.DEBUG) {
@@ -142,6 +145,7 @@ public class UrlConnectionClient {
                         out.close();
                     }
                 }
+                DrmLog.debug("end");
             }
         }));
     }
@@ -170,16 +174,19 @@ public class UrlConnectionClient {
 
             @Override
             public HttpURLConnection getRequest(String redirectUrl) throws Exception {
+                DrmLog.debug("start");
                 HttpURLConnection urlConnection = null;
                 URL targetUrl = URI.create((redirectUrl != null) ? redirectUrl : url).toURL();
                 urlConnection = (HttpURLConnection)targetUrl.openConnection();
                 setParameters(context, urlConnection, fParameters);
+                DrmLog.debug("end");
                 return urlConnection;
             }
         }));
     }
 
     private static String getDefaultUserAgent(Context context) {
+        DrmLog.debug("start");
         String defaultUserAgent = Constants.FALLBACK_USER_AGENT;
         String versionName = null;
         CharSequence appName = null;
@@ -195,10 +202,12 @@ public class UrlConnectionClient {
         if (versionName != null && appName != null) {
             defaultUserAgent = appName + "/" + versionName + " (" + Build.VERSION.RELEASE + ")";
         }
+        DrmLog.debug("end");
         return defaultUserAgent;
     }
 
     private static void setParameters(Context context, HttpURLConnection con, Bundle parameters) {
+        DrmLog.debug("start");
         if (con != null) {
             con.setInstanceFollowRedirects(false);
             int timeout = 60;
@@ -224,12 +233,14 @@ public class UrlConnectionClient {
             con.setConnectTimeout(timeout * 1000);
             con.setReadTimeout(timeout * 1000);
         }
+        DrmLog.debug("end");
     }
 
     /*
      * Function to keep track of current executing requests
      */
     private static Response executeRequest(long sessionId, Request request) {
+        DrmLog.debug("start");
         synchronized (mIdMap) {
             mIdMap.put(sessionId, request);
         }
@@ -237,6 +248,7 @@ public class UrlConnectionClient {
         synchronized (mIdMap) {
             mIdMap.remove(sessionId);
         }
+        DrmLog.debug("end");
         return response;
     }
 
@@ -290,6 +302,7 @@ public class UrlConnectionClient {
         public Request(Context context, boolean returnRedirect,
                 Bundle parameters, RetryCallback retryCallback,
                 RequestAction requestAction) {
+            DrmLog.debug("start");
             mAction = requestAction;
             mRetryCallback = retryCallback;
             mReturnRedirect = returnRedirect;
@@ -303,9 +316,11 @@ public class UrlConnectionClient {
                 value = parameters.getInt(Constants.DRM_KEYPARAM_REDIRECT_LIMIT, -1);
                 mRedirectLimit = (value >= 0) ? value : mRedirectLimit;
             }
+            DrmLog.debug("end");
         }
 
         public Response execute() {
+            DrmLog.debug("start");
             Response response = null;
             boolean isFinished = false;
 
@@ -367,10 +382,12 @@ public class UrlConnectionClient {
                     response.mRedirect = mRedirectUrl.toString();
                 }
             }
+            DrmLog.debug("end");
             return response;
         }
 
         private boolean handleResponse(HttpURLConnection con) throws IOException {
+            DrmLog.debug("start");
             boolean requestFinished = false;
             mStatusCode = con.getResponseCode();
             DrmLog.debug("mStatusCode " + mStatusCode);
@@ -423,10 +440,13 @@ public class UrlConnectionClient {
                     // Other status codes should be returned.
                     requestFinished = true;
             }
+            DrmLog.debug("status:" + mStatusCode);
+            DrmLog.debug("end");
             return handleData(con) || requestFinished;
         }
 
         private boolean handleData(HttpURLConnection con) throws IOException {
+            DrmLog.debug("start");
             boolean abort = false;
             mMimeType = con.getContentType();
             InputStream is = null;
@@ -447,14 +467,17 @@ public class UrlConnectionClient {
                     DrmLog.logException(e);
                 }
             }
+            DrmLog.debug("end");
             return abort;
         }
 
         public void cancel() {
+            DrmLog.debug("start");
             mIsCanceled = true;
             synchronized (cancelSync) {
                 cancelSync.notify();
             }
+            DrmLog.debug("end");
         }
 
     }
@@ -471,36 +494,44 @@ public class UrlConnectionClient {
         public String mRedirect = null;
 
         public Response(int status, int innerStatus, String mime, byte[] data) {
+            DrmLog.debug("start");
             DrmLog.debug("new Reponse status :" + status + " inner status: " + innerStatus);
             mStatus = status;
             mInnerStatus = innerStatus;
             mMime = mime;
             mData = data;
+            DrmLog.debug("end");
         }
 
         public int getStatus() {
+            DrmLog.debug("status:" + mStatus);
             return mStatus;
         }
 
         public int getInnerStatus() {
+            DrmLog.debug("InnerStatus:" + mInnerStatus);
             return mInnerStatus;
         }
 
         public String getMime() {
+            DrmLog.debug("Mime:" + mMime);
             return mMime;
         }
 
         public byte[] getData() {
+            DrmLog.debug("Data:" + mData);
             return mData;
         }
     }
 
     public static void prepareCancel(long sessionId) {
+        DrmLog.debug("start");
         synchronized (mIdMap) {
             Request request = mIdMap.get(sessionId);
             if (request != null) {
                 request.cancel();
             }
         }
+        DrmLog.debug("end");
     }
 }

@@ -46,6 +46,8 @@ public class HeaderExtractor {
     public static void parseFile(Context context, String fileUri,
             RequestManager.Task task) {
 
+        DrmLog.debug("start");
+
         Uri uri = Uri.parse(fileUri);
 
         final StringBuffer headerString = new StringBuffer();
@@ -145,9 +147,11 @@ public class HeaderExtractor {
                 // it's OK if we couldn't delete the file
             }
         }
+        DrmLog.debug("end");
     }
 
     private static String getUniqueTempFileName(Context context, String inputFilename) {
+        DrmLog.debug("start");
         File directory = new File(context.getCacheDir().getAbsolutePath());
         String fullpath = null;
         if (inputFilename == null || inputFilename.length() == 0) {
@@ -174,10 +178,12 @@ public class HeaderExtractor {
             }
             fullpath = directory + File.separator + filename;
         }
+        DrmLog.debug("end");
         return fullpath;
     }
 
     public static void parsePSSH(byte[] pssh, RequestManager.Task task) {
+        DrmLog.debug("start");
         try {
             task.mHeader = DrmPiffParser.getPlayReadyHeader(pssh);
             if (task.mHeader == null) {
@@ -187,9 +193,11 @@ public class HeaderExtractor {
             task.mHttpError = Constants.HTTP_ERROR_XML_PARSING_ERROR;
             DrmLog.logException(e);
         }
+        DrmLog.debug("end");
     }
 
     public static String findHeader(String file) {
+        DrmLog.debug("start");
         String header = null;
         try {
             DrmPiffParser parser = new DrmPiffParser();
@@ -197,10 +205,12 @@ public class HeaderExtractor {
         } catch (Exception e) {
             DrmLog.logException(e);
         }
+        DrmLog.debug("end");
         return header;
     }
 
     private static String findManifestHeader(String inputFilename) {
+        DrmLog.debug("start");
         String header = null;
         String protectionHeader = XmlParser.parseXml(new File(inputFilename), "ProtectionHeader");
         if (protectionHeader != null) {
@@ -213,6 +223,7 @@ public class HeaderExtractor {
                 DrmLog.logException(e);
             }
         }
+        DrmLog.debug("end");
         return header;
     }
 }

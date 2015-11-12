@@ -72,16 +72,19 @@ public class ContentDownloadManager implements Runnable {
      * @param sessionId dls session id
      */
     public ContentDownloadManager(Context context, String contentUrl, long sessionId) {
+        DrmLog.debug("start");
         mContext = context;
         mContentUrl = contentUrl;
         Bundle httpParams = SessionManager.getInstance().getHttpParams(sessionId);
         if (httpParams != null) {
             mHeaders = httpParams.getBundle(Constants.DRM_KEYPARAM_HTTP_HEADERS);
         }
+        DrmLog.debug("end");
     }
 
     @Override
     public void run() {
+        DrmLog.debug("start");
         if (mContentUrl != null && mContentUrl.length() > 0) {
             Uri uri = Uri.parse(mContentUrl);
             if (Looper.myLooper() == null) {
@@ -102,6 +105,7 @@ public class ContentDownloadManager implements Runnable {
                     request.setDestinationInExternalPublicDir(directory, filename);
                 } catch (IllegalStateException e) {
                     DrmLog.logException(e);
+                    DrmLog.debug("end");
                     return;
                 }
                 request.setVisibleInDownloadsUi(true);
@@ -131,9 +135,11 @@ public class ContentDownloadManager implements Runnable {
                 }
             }
         }
+        DrmLog.debug("end");
     }
 
     private String getUniqueFileName(File directory, String inputFilename) {
+        DrmLog.debug("start");
         File file = new File(directory, inputFilename);
         if (directory.exists() || directory.mkdirs()) {
             long fileIndex = -1;
@@ -148,6 +154,7 @@ public class ContentDownloadManager implements Runnable {
                 file = new File(directory, filename + fileIndex-- + extension);
             }
         }
+        DrmLog.debug("end");
         return file.getName();
     }
 
@@ -158,6 +165,7 @@ public class ContentDownloadManager implements Runnable {
 
         @Override
         public void onChange(boolean selfChange) {
+            DrmLog.debug("start");
             String endStatus = null;
             if (mCursor != null) {
                 mCursor.unregisterContentObserver(mObserver);
@@ -238,10 +246,12 @@ public class ContentDownloadManager implements Runnable {
                 Looper.myLooper().quit();
                 finishDownload(mDownloadFilePath, endStatus);
             }
+            DrmLog.debug("end");
         }
     }
 
     private static String getStatusCodeForFailedDownload(int reason) {
+        DrmLog.debug("start");
         String endStatus = "error";
         switch (reason) {
             case DownloadManager.ERROR_TOO_MANY_REDIRECTS:
@@ -260,6 +270,8 @@ public class ContentDownloadManager implements Runnable {
             default:
                 break;
         }
+        DrmLog.debug("reason:" + reason);
+        DrmLog.debug("end");
         return endStatus;
     }
 
@@ -267,6 +279,7 @@ public class ContentDownloadManager implements Runnable {
      * Send status report and clean up
      */
     private void finishDownload(String filePath, String downloadStatus) {
+        DrmLog.debug("start");
         if (downloadStatus.equals("SUCCESS") && filePath != null) {
             DrmLog.debug("download passed" + filePath);
             Uri filePathUri = Uri.parse(filePath);
@@ -283,6 +296,7 @@ public class ContentDownloadManager implements Runnable {
             mCursor.close();
             mCursor = null;
         }
+        DrmLog.debug("end");
     }
 
 }

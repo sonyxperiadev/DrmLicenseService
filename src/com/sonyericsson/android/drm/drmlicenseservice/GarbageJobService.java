@@ -55,27 +55,35 @@ public class GarbageJobService extends JobService {
 
     @Override
     public void onCreate() {
+        DrmLog.debug("start");
         super.onCreate();
         mService = this;
         garbageTask = new GarbageAsyncTask();
+        DrmLog.debug("end");
     }
 
     @Override
     public boolean onStartJob(JobParameters params) {
+        DrmLog.debug("start");
         garbageTask.execute(params);
+        DrmLog.debug("end");
         return true;
     }
 
     @Override
     public boolean onStopJob(JobParameters params) {
+        DrmLog.debug("start");
         return false; // rescheduling is handled locally
     }
 
     public void reschedule() {
+        DrmLog.debug("start");
         ScheduleGarbageCollection(getBaseContext());
+        DrmLog.debug("end");
     }
 
     public static void ScheduleGarbageCollection(Context context) {
+        DrmLog.debug("start");
         boolean isSupported = false, isNeeded = false;
         try {
             MediaDrm md = new MediaDrm(Constants.UUID_PR);
@@ -106,6 +114,7 @@ public class GarbageJobService extends JobService {
                 DrmLog.debug("Failed to schedule garbage collection");
             }
         }
+        DrmLog.debug("end");
     }
 
     private class GarbageAsyncTask extends AsyncTask<JobParameters, Void, JobParameters[]> {
@@ -114,6 +123,7 @@ public class GarbageJobService extends JobService {
 
         @Override
         protected JobParameters[] doInBackground(JobParameters... params) {
+            DrmLog.debug("start");
             boolean status = false;
             try {
                 MediaDrm md = new MediaDrm(Constants.UUID_PR);
@@ -137,10 +147,13 @@ public class GarbageJobService extends JobService {
             if (mNeedsRescheduling) {
                 mService.reschedule();
             }
+            DrmLog.debug("status:" + status);
+            DrmLog.debug("end");
             return params;
         }
 
         public boolean getJobStatus() {
+            DrmLog.debug("start");
             return mNeedsRescheduling;
         }
     }
