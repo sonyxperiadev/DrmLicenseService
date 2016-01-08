@@ -453,13 +453,13 @@ public class RequestManager {
                     // Request towards LA_URL returned error, check for LUI_URL
                     tryRedirect(currentTask);
             }
+            DrmLog.debug("Http response: " + httpResponse.getStatus());
         } else {
             DrmLog.debug("no response from DLSHttpClient");
             if (SessionManager.getInstance().isCancelled(currentTask.mDlsSessionId)) {
                 currentTask.mHttpError = Constants.HTTP_ERROR_CANCELLED;
             }
         }
-        DrmLog.debug("Http response: " + httpResponse.getStatus());
         DrmLog.debug("processHttpResponse end " + currentTask.mHttpError + "  " +
                 currentTask.mInnerHttpError);
     }
