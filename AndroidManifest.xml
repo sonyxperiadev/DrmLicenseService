@@ -3,8 +3,8 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17596522"
-    android:versionName="01.060.0002">
+    android:versionCode="17596523"
+    android:versionName="01.060.0003">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -62,19 +62,19 @@
             android:exported="true">
             <intent-filter>
                 <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:pathPattern=".*\\.isma" />
+                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.isma" />
             </intent-filter>
             <intent-filter>
                 <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:pathPattern=".*\\.ismv"/>
+                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.ismv"/>
             </intent-filter>
             <intent-filter>
                 <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:pathPattern=".*\\.pya"/>
+                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.pya"/>
             </intent-filter>
             <intent-filter>
                 <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:pathPattern=".*\\.pyv"/>
+                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.pyv"/>
             </intent-filter>
         </receiver>
 
