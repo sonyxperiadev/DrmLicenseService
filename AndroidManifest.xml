@@ -3,8 +3,8 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17596523"
-    android:versionName="01.060.0003">
+    android:versionCode="17596524"
+    android:versionName="01.060.0004">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
