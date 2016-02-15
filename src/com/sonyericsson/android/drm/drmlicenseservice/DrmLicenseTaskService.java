@@ -23,6 +23,7 @@
 
 package com.sonyericsson.android.drm.drmlicenseservice;
 
+import com.sonyericsson.android.drm.drmlicenseservice.porting.PortingLayer;
 import com.sonyericsson.android.drm.drmlicenseservice.RequestManager.RedirectCallback;
 import com.sonyericsson.android.drm.drmlicenseservice.utils.DrmLog;
 
@@ -58,32 +59,40 @@ public class DrmLicenseTaskService extends IntentService {
         Bundle extras = intent.getExtras();
         long sessionId = 0;
         int intentType = -1;
-        if (extras != null) {
-            sessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID, Constants.NOT_AIDL_SESSION);
-            intentType = extras.getInt(Constants.DLS_INTENT_TYPE, -1);
 
-            SessionManager.getInstance().makeSureAIDLSessionIsOpen(sessionId);
-        }
-        switch (intentType) {
-            case Constants.DLS_INTENT_TYPE_FINISHED_WEBI:
-                if (sessionId > Constants.NOT_AIDL_SESSION) {
-                    if (!SessionManager.getInstance().isCancelled(sessionId)) {
-                        SessionManager.getInstance().callback(sessionId,
-                                Constants.PROGRESS_TYPE_FINISHED_WEBINI, true, new Bundle());
-                    } else {
-                        // Notify that session cancel is now complete.
-                        SessionManager.getInstance().callback(sessionId,
-                                Constants.PROGRESS_TYPE_CANCELLED, true, new Bundle());
-                        // it's now safe to remove it from cancelled list
-                        SessionManager.getInstance().clearCancelled(sessionId);
+        // This is used for tts synchronization before acquiring license.
+        // TTS synchronization process should be implemented by each oem manufacturer if needed.
+        boolean ret = PortingLayer.synchronizeTts(this);
+        if (ret) {
+            if (extras != null) {
+                sessionId = extras.getLong(Constants.DLS_INTENT_SESSION_ID, Constants.NOT_AIDL_SESSION);
+                intentType = extras.getInt(Constants.DLS_INTENT_TYPE, -1);
+
+                SessionManager.getInstance().makeSureAIDLSessionIsOpen(sessionId);
+            }
+            switch (intentType) {
+                case Constants.DLS_INTENT_TYPE_FINISHED_WEBI:
+                    if (sessionId > Constants.NOT_AIDL_SESSION) {
+                        if (!SessionManager.getInstance().isCancelled(sessionId)) {
+                            SessionManager.getInstance().callback(sessionId,
+                                    Constants.PROGRESS_TYPE_FINISHED_WEBINI, true, new Bundle());
+                        } else {
+                            // Notify that session cancel is now complete.
+                            SessionManager.getInstance().callback(sessionId,
+                                    Constants.PROGRESS_TYPE_CANCELLED, true, new Bundle());
+                            // it's now safe to remove it from cancelled list
+                            SessionManager.getInstance().clearCancelled(sessionId);
+                        }
                     }
-                }
-                break;
-            case Constants.DLS_INTENT_TYPE_TASK:
-            default:
-                RequestManager requestManager = new RequestManager(getBaseContext(), extras,
-                        mCallback);
-                requestManager.execute();
+                    break;
+                case Constants.DLS_INTENT_TYPE_TASK:
+                default:
+                    RequestManager requestManager = new RequestManager(getBaseContext(), extras,
+                            mCallback);
+                    requestManager.execute();
+            }
+        } else {
+            DrmLog.error("synchronizeTts error");
         }
         DrmLog.debug("Finished handle intent" + intentType);
         DrmLog.debug("end");
