@@ -204,7 +204,11 @@ public class ContentDownloadManager implements Runnable {
                                     } else if (path.toLowerCase(Locale.US).endsWith(".ismv")) {
                                         mimeType = "video/ismv";
                                     }
-                                    intent.setDataAndType(Uri.parse(path), mimeType);
+                                    // To replace "file://" with "content://" so that we will
+                                    // avoid FileUriExposedException
+                                    // when targetSdkVersion="24" or later.
+                                    intent.setDataAndType(Uri.parse(
+                                           path.replace("file://", "content://")), mimeType);
                                 }
                                 sentence = res.getString(R.string.status_successful_download);
                         } else { // DownloadManager.STATUS_FAILED:
