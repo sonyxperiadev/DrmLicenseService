@@ -57,7 +57,6 @@ public class WebInitiatorTaskService extends IntentService {
             WEBI_TYPE_JOIN_DOMAIN = "JoinDomain",
             WEBI_TYPE_LEAVE_DOMAIN = "LeaveDomain",
             WEBI_LICENSE_ACQUISITION_KID = "KID",
-            WEBI_LICENSE_ACQUISITION_CONTENT = "Content",
             WEBI_LICENSE_ACQUISITION_HEADER = "Header";
 
     public WebInitiatorTaskService() {
@@ -272,19 +271,8 @@ public class WebInitiatorTaskService extends IntentService {
                 Constants.PROGRESS_TYPE_FINISHED_JOB);
         if (type.equals(WEBI_TYPE_LICENSE_ACQUISITION)) {
             String kid = data.get(WEBI_LICENSE_ACQUISITION_KID);
-            String content = data.get(WEBI_LICENSE_ACQUISITION_CONTENT);
             String header = data.get(WEBI_LICENSE_ACQUISITION_HEADER);
             if (header != null && header.length() > 0 && kid != null && kid.length() > 0) {
-                if (content != null && content.length() > 0) {
-                    callbackParameters.putString(Constants.DLS_CB_PATH, content);
-                    if (mSessionId == Constants.NOT_AIDL_SESSION
-                            || !SessionManager.getInstance().hasCallbackHandler(mSessionId)) {
-                        ContentDownloadManager dlManager = new ContentDownloadManager(mContext,
-                                content, mSessionId);
-                        Thread t = new Thread(dlManager);
-                        t.start();
-                    }
-                }
                 intent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
                         RequestManager.TYPE_ACQUIRE_LICENSE);
                 callbackParameters.putString(Constants.DRM_KEYPARAM_TYPE,

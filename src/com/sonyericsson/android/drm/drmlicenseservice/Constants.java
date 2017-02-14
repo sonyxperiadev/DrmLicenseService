@@ -50,10 +50,6 @@ public class Constants {
     public static final String INTENT_ACTION_DRM_SERVICE_HANDLE_WEB_INITIATOR =
             "com.sonyericsson.intent.action.WEB_INITIATOR";
 
-    /** Intent action for renewal of rights */
-    public static final String DRM_RENEW_RIGHTS_ACTION =
-            "com.sonyericsson.android.drm.GET_RIGHTS";
-
     /** Intent action for handling Web Initiator */
     public static final String DRM_WEB_INITIATOR_ACTION =
             "com.sonyericsson.android.drm.WEB_INITIATOR";
@@ -193,4 +189,7 @@ public class Constants {
 
     protected static final long GARBAGE_COLLECT_INTERVAL = 604800; // one week in seconds
     protected static final long JOB_SCHEDULER_DELAY = 3600000; // one hour in millisecond
+
+    public static final String SCHEME_HTTP = "http";
+    public static final String SCHEME_HTTPS = "https";
 }

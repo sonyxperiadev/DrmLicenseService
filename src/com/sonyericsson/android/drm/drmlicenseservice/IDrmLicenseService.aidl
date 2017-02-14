@@ -64,7 +64,7 @@ long handleWebInitiator(in Uri uri,
 /**
  * Renew rights for a specific file
  *
- * @param[in] filePath   Full path to the file that need new rights
+ * @param[in] filePath   uri to streaming contents that need new rights
  * @param[in] parameters A map containing additional parameters, examples:
  *                           "USER_AGENT", "Operator/2.0 service/3.0"
  *                           "FRIENDLY_NAME", "NameOfPhone" // Used in domain protocols to
@@ -83,13 +83,13 @@ long handleWebInitiator(in Uri uri,
 long renewRights(in Uri filePath, in Bundle parameters, IDrmLicenseServiceCallback callbackHandler);
 
 /**
- * Renew rights for a file/uri or pssh box. If a pssh box is supplied then the file is only
+ * Renew rights for a uri or pssh box. If a pssh box is supplied then the file is only
  * used as information in the callback.
  *
  * @param[in] renewData  A map containing at least one of the following parameters to get rights:
  *                           "HEADER" // String containing header, 1st prio
  *                           "PSSH_BOX" // Byte[] containing pssh data, 2nd prio
- *                           "FILE_PATH" // File/uri to acquire rights, 3rd prio
+ *                           "FILE_PATH" // uri to acquire rights, 3rd prio
  *                                       // Is used to get header if HEADER and PSSH_BOX is missing
  * @param[in] parameters A map containing additional parameters, examples:
  *                           "USER_AGENT", "Operator/2.0 service/3.0"
