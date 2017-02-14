@@ -137,7 +137,7 @@ public class UrlConnectionClient {
                 if (urlConnection != null) {
                     if (data != null && data.length() > 0) {
                         if (Constants.DEBUG) {
-                            DrmLog.writeDataToFile("post", data.getBytes());
+                            DrmLog.debug("post " + data);
                         }
                         urlConnection.setFixedLengthStreamingMode(data.length());
                         OutputStream out = urlConnection.getOutputStream();
@@ -377,7 +377,7 @@ public class UrlConnectionClient {
             if (!mIsCanceled) {
                 response = new Response(mStatusCode, mInnerStatusCode, mMimeType, mRespData);
                 if (mStatusCode == 200 || mStatusCode == 500) {
-                    DrmLog.writeDataToFile("resp", mRespData);
+                    DrmLog.debug("mStatusCode = " + mStatusCode);
                 } else if (mRedirectUrl != null) {
                     response.mRedirect = mRedirectUrl.toString();
                 }

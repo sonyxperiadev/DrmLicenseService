@@ -3,12 +3,11 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.sonyericsson.android.drm.drmlicenseservice"
-    android:versionCode="17596525"
-    android:versionName="01.070.0001">
+    android:versionCode="17596526"
+    android:versionName="01.070.0002">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="24"/>
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="25"/>
 
     <application android:label="Drm License Service" android:allowBackup="false" >
 
@@ -48,35 +47,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                 <data android:scheme="file" />
-                <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.ms-playready.initiator+xml" />
             </intent-filter>
         </activity>
-
-        <receiver android:name="com.sonyericsson.android.drm.drmlicenseservice.DrmLicenseServiceBroadcastReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.isma" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.ismv"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.pya"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name ="com.sonyericsson.android.drm.GET_RIGHTS"/>
-                <data android:scheme="file" android:host="*" android:pathPattern=".*\\.pyv"/>
-            </intent-filter>
-        </receiver>
 
         <service android:name="com.sonyericsson.android.drm.drmlicenseservice.GarbageJobService"
             android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true"/>

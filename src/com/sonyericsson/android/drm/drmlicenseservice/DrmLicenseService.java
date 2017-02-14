@@ -92,7 +92,9 @@ public class DrmLicenseService extends Service {
         byte[] psshBox = intent.getByteArrayExtra(Constants.DRM_KEYPARAM_RENEW_PSSH_BOX);
         String header = intent.getStringExtra(Constants.DRM_KEYPARAM_RENEW_HEADER);
         final Uri uri = intent.getData();
-        if (header != null || psshBox != null || uri != null) {
+        if (header != null ||
+            psshBox != null ||
+            (uri != null && Constants.SCHEME_HTTP.equals(uri.getScheme()))) {
             Intent serviceintent = new Intent(Constants.TASK_SERVICE);
             serviceintent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
                     RequestManager.TYPE_RENEW_RIGHTS);
@@ -114,7 +116,9 @@ public class DrmLicenseService extends Service {
         final Uri uri = intent.getData();
         String mime = intent.getType();
         if (mime != null && mime.equals(Constants.DRM_DLS_INITIATOR_MIME)) {
-            if (uri != null && uri.getScheme() != null) {
+            if (uri != null &&
+                (Constants.SCHEME_HTTP.equals(uri.getScheme()) ||
+                 Constants.SCHEME_HTTPS.equals(uri.getScheme()))) {
                 intent.setAction(Constants.WEBI_SERVICE);
                 intent.setClass(getBaseContext(), WebInitiatorTaskService.class);
                 getBaseContext().startService(intent);
@@ -137,7 +141,9 @@ public class DrmLicenseService extends Service {
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
             DrmLog.debug("start");
             long sessionId = 0;
-            if (uri != null) {
+            if (uri != null &&
+                (Constants.SCHEME_HTTP.equals(uri.getScheme()) ||
+                 Constants.SCHEME_HTTPS.equals(uri.getScheme()))) {
                 sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
                 Intent serviceintent = new Intent(Constants.WEBI_SERVICE);
                 serviceintent.setData(uri);
@@ -153,7 +159,7 @@ public class DrmLicenseService extends Service {
                 IDrmLicenseServiceCallback callbackHandler) throws RemoteException {
             DrmLog.debug("start");
             long sessionId = 0;
-            if (uri != null) {
+            if (uri != null && Constants.SCHEME_HTTP.equals(uri.getScheme())) {
                 sessionId = SessionManager.getInstance().startSession(callbackHandler, parameters);
                 Intent serviceintent = new Intent(Constants.TASK_SERVICE);
                 serviceintent.putExtra(Constants.DLS_INTENT_REQUEST_TYPE,
@@ -186,7 +192,10 @@ public class DrmLicenseService extends Service {
                 String header = renewData.getString(Constants.DRM_KEYPARAM_RENEW_HEADER);
                 String filePath = renewData.getString(Constants.DRM_KEYPARAM_RENEW_FILE_PATH);
 
-                if (header != null || psshBox != null || filePath != null) {
+                if (header != null ||
+                    psshBox != null ||
+                    (filePath != null &&
+                     Constants.SCHEME_HTTP.equals(Uri.parse(filePath).getScheme()))) {
                     sessionId = SessionManager.getInstance().startSession(callbackHandler,
                             parameters);
                     Intent serviceintent = new Intent(Constants.TASK_SERVICE);

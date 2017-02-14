@@ -6,14 +6,12 @@ For opendrmframework use alternative branches.
 DrmLicenseService will perform all communication with server to acquire license and may, depending on the way it is started, provide progress information.
 
 Ways to start DrmLicenseService:
-1. Use AIDL to renew rights for a file or start handling of a PlayReady WebInitiator.
-   Provides progress feedback using AIDL callback interface.
-   This is the perferred way of launching DrmLicenseService.
-2. Click on a PlayReady WebInitator in the browser.
-   If you are using Android ICS, then you'll need to make a small modification in
-   the WebKit browser for this to work, see doc/ICS-Browser-modification.txt for
-   details.
-3. Send RenewRights intent for a file to acquire new rights.
+Use AIDL to renew rights or start handling of a PlayReady WebInitiator.
+Provides progress feedback using AIDL callback interface.
+This is the preferred way of launching DrmLicenseService.
+
+Notes on Version 01.070.0002:
+We reconsidered the license acquisition via file because Google changed storage access policy from N.
 
 If you find any information to be incorrect or if you have any questions, feel free to contact:
    * Yuta Yamaguchi
